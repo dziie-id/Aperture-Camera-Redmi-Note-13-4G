@@ -80,6 +80,7 @@ import org.lineageos.aperture.models.PhotoCaptureEvent
 import org.lineageos.aperture.models.Rotation
 import org.lineageos.aperture.models.ShadingMode
 import org.lineageos.aperture.models.TimerMode
+import org.lineageos.aperture.qr.QrImageAnalyzer
 import org.lineageos.aperture.repositories.CameraRepository
 import org.lineageos.aperture.utils.CameraSoundsUtils
 import org.lineageos.aperture.utils.StorageUtils
@@ -140,6 +141,11 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
      * Mutex used to zoom the camera.
      */
     private var zoomGestureMutex = Mutex()
+
+    /**
+     * QR image analyzer.
+     */
+    val qrImageAnalyzer = QrImageAnalyzer(applicationContext, viewModelScope)
 
     /**
      * The list of [Camera]s to use for cycling.
@@ -790,6 +796,17 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
      */
     val videoRecordEvent = MutableSharedFlow<VideoRecordEvent>()
 
+    // QR
+
+    /**
+     * QR result.
+     */
+    val qrResult = qrImageAnalyzer.qrResult
+        .shareIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(),
+        )
+
     /**
      * Whether the camera can be flipped.
      */
@@ -1385,6 +1402,10 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
 
     fun setSaveLocation(saveLocation: Boolean?) {
         preferencesRepository.saveLocation.value = saveLocation
+    }
+
+    fun onQrDialogDismissed() {
+        qrImageAnalyzer.dismissResult()
     }
 
     fun getHardwareKeyAction(

@@ -117,7 +117,6 @@ import org.lineageos.aperture.models.Rotation
 import org.lineageos.aperture.models.TimerMode
 import org.lineageos.aperture.models.VideoMirrorMode
 import org.lineageos.aperture.models.VideoStabilizationMode
-import org.lineageos.aperture.qr.QrImageAnalyzer
 import org.lineageos.aperture.ui.CameraModeSelectorLayout
 import org.lineageos.aperture.ui.CapturePreviewLayout
 import org.lineageos.aperture.ui.CountDownView
@@ -128,6 +127,7 @@ import org.lineageos.aperture.ui.LensSelectorLayout
 import org.lineageos.aperture.ui.LevelerView
 import org.lineageos.aperture.ui.LocationPermissionsDialog
 import org.lineageos.aperture.ui.PreviewBlurView
+import org.lineageos.aperture.ui.QrBottomSheetDialog
 import org.lineageos.aperture.ui.VerticalSlider
 import org.lineageos.aperture.utils.ExifUtils
 import org.lineageos.aperture.utils.GoogleLensUtils
@@ -198,7 +198,7 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
     private val secureMediaUris = ArrayDeque<Uri>()
 
     // QR
-    private val imageAnalyzer by lazy { QrImageAnalyzer(this, lifecycleScope) }
+    private val qrBottomSheetDialog by lazy { QrBottomSheetDialog(this) }
     private val isGoogleLensAvailable by lazy { GoogleLensUtils.isGoogleLensAvailable(this) }
 
     private var viewFinderTouchEvent: MotionEvent? = null
@@ -603,6 +603,11 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
 
         // Bind viewfinder and preview blur view
         previewBlurView.previewView = viewFinder
+
+        // Observe QR dialog dismiss
+        qrBottomSheetDialog.setOnDismissListener {
+            viewModel.onQrDialogDismissed()
+        }
 
         lifecycleScope.launch {
             lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -1336,6 +1341,12 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
         }
 
         launch {
+            viewModel.qrResult.collectLatest { qrResult ->
+                qrBottomSheetDialog.setQrResult(qrResult)
+            }
+        }
+
+        launch {
             viewModel.canFlipCamera.collectLatest { canFlipCamera ->
                 flipCameraButton.isInvisible = !canFlipCamera
             }
@@ -1492,7 +1503,7 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
 
             is CameraConfiguration.Qr -> {
                 viewModel.cameraController.setImageAnalysisAnalyzer(
-                    viewModel.cameraExecutor, imageAnalyzer
+                    viewModel.cameraExecutor, viewModel.qrImageAnalyzer
                 )
 
                 CameraController.IMAGE_ANALYSIS
