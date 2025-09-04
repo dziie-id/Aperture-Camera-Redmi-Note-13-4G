@@ -6,7 +6,7 @@
 package org.lineageos.aperture.models
 
 enum class CameraMode(
-    val supportedFlashModes: Set<FlashMode> = setOf(FlashMode.OFF),
+    val supportedFlashModes: Set<FlashMode>,
 ) {
     PHOTO(
         setOf(
@@ -22,5 +22,10 @@ enum class CameraMode(
             FlashMode.TORCH,
         ),
     ),
-    QR,
+    QR(
+        setOf(
+            FlashMode.OFF,
+            FlashMode.TORCH,
+        ),
+    ),
 }

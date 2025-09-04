@@ -361,17 +361,23 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
     private val forceTorch = MutableStateFlow(false)
 
     /**
+     * Whether QR torch mode should be enabled.
+     */
+    private val qrFlashMode = MutableStateFlow(FlashMode.OFF)
+
+    /**
      * The user selected flash mode.
      */
     private val wantedFlashMode = combine(
         cameraConfiguration,
         preferencesRepository.photoFlashMode,
         preferencesRepository.videoFlashMode,
-    ) { cameraConfiguration, photoFlashMode, videoFlashMode ->
+        qrFlashMode,
+    ) { cameraConfiguration, photoFlashMode, videoFlashMode, qrFlashMode ->
         when (cameraConfiguration.cameraMode) {
             CameraMode.PHOTO -> photoFlashMode
             CameraMode.VIDEO -> videoFlashMode
-            CameraMode.QR -> FlashMode.OFF
+            CameraMode.QR -> qrFlashMode
         }
     }
         .flowOn(Dispatchers.IO)
@@ -823,12 +829,11 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
     /**
      * Whether the camera can be flipped.
      */
-    val canFlipCamera = combine(
-        cameraMode,
-        cameraState
-    ) { cameraMode, cameraState ->
-        cameraMode != CameraMode.QR && !cameraState.isRecordingVideo
-    }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val canFlipCamera = cameraState
+        .mapLatest { cameraState ->
+            !cameraState.isRecordingVideo
+        }
         .flowOn(Dispatchers.IO)
         .stateIn(
             viewModelScope,
@@ -1173,9 +1178,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
                     when (cameraConfiguration.cameraMode) {
                         CameraMode.PHOTO -> preferencesRepository.photoFlashMode.value = it
                         CameraMode.VIDEO -> preferencesRepository.videoFlashMode.value = it
-                        CameraMode.QR -> {
-                            // Do nothing
-                        }
+                        CameraMode.QR -> qrFlashMode.value = it
                     }
                 }
             }

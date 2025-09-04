@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-     SPDX-FileCopyrightText: 2022-2024 The LineageOS Project
+     SPDX-FileCopyrightText: 2022-2025 The LineageOS Project
      SPDX-License-Identifier: Apache-2.0
 -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -233,6 +233,18 @@
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@drawable/ic_pro_button" />
 
+        <ImageButton
+            android:id="@+id/googleLensButton"
+            style="@style/Theme.Aperture.Camera.SecondaryBottomBarButton"
+            android:layout_marginStart="40dp"
+            android:contentDescription="@string/google_lens_button_description"
+            android:src="@drawable/ic_google_lens"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@android:color/white" />
+
         <org.lineageos.aperture.ui.LensSelectorLayout
             android:id="@+id/lensSelectorLayout"
             android:layout_width="wrap_content"
@@ -340,19 +352,6 @@
             app:layout_constraintStart_toStartOf="@+id/flipCameraButton"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <ImageButton
-        android:id="@+id/googleLensButton"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_marginStart="32dp"
-        android:background="@null"
-        android:contentDescription="@string/google_lens_button_description"
-        android:scaleType="center"
-        android:src="@drawable/ic_google_lens"
-        android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@+id/cameraModeSelectorLayout"
-        app:layout_constraintStart_toStartOf="parent" />
 
     <org.lineageos.aperture.ui.CameraModeSelectorLayout
         android:id="@+id/cameraModeSelectorLayout"

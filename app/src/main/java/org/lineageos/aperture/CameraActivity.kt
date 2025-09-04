@@ -168,7 +168,6 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
     private val mainLayout by lazy { findViewById<ConstraintLayout>(R.id.mainLayout) }
     private val micButton by lazy { findViewById<Button>(R.id.micButton) }
     private val previewBlurView by lazy { findViewById<PreviewBlurView>(R.id.previewBlurView) }
-    private val primaryBarLayout by lazy { findViewById<ConstraintLayout>(R.id.primaryBarLayout) }
     private val proButton by lazy { findViewById<ImageButton>(R.id.proButton) }
     private val screenFlashView by lazy { findViewById<ScreenFlashView>(R.id.screenFlashView) }
     private val secondaryBottomBarLayout by lazy { findViewById<ConstraintLayout>(R.id.secondaryBottomBarLayout) }
@@ -458,6 +457,11 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
         proButton.setOnClickListener {
             secondaryTopBarLayout.slide()
         }
+        googleLensButton.setOnClickListener {
+            dismissKeyguardAndRun {
+                GoogleLensUtils.launchGoogleLens(this)
+            }
+        }
         flashButton.setOnClickListener { viewModel.cycleFlashMode(false) }
         flashButton.setOnLongClickListener { viewModel.cycleFlashMode(true) }
 
@@ -526,11 +530,6 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
 
         // Set primary bar button callbacks
         flipCameraButton.setOnClickListener { viewModel.flipCamera() }
-        googleLensButton.setOnClickListener {
-            dismissKeyguardAndRun {
-                GoogleLensUtils.launchGoogleLens(this)
-            }
-        }
 
         videoRecordingStateButton.setOnClickListener {
             viewModel.onVideoRecordingStateButtonPress()
@@ -744,13 +743,11 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
                 micButton.isVisible = cameraMode == CameraMode.VIDEO
 
                 // Update secondary bottom bar buttons
-                secondaryBottomBarLayout.isInvisible = cameraMode == CameraMode.QR
+                proButton.isVisible = cameraMode != CameraMode.QR
+                googleLensButton.isVisible = cameraMode == CameraMode.QR && isGoogleLensAvailable
 
                 // Update primary bar buttons
-                primaryBarLayout.isInvisible = cameraMode == CameraMode.QR
-
-                // Update Google Lens button
-                googleLensButton.isVisible = cameraMode == CameraMode.QR && isGoogleLensAvailable
+                shutterButton.isInvisible = cameraMode == CameraMode.QR
 
                 // Update camera mode selector
                 cameraModeSelectorLayout.setCurrentCameraMode(cameraMode)
