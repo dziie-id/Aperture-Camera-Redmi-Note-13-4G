@@ -49,7 +49,13 @@ class CameraModeSelectorLayout @JvmOverloads constructor(
                     R.layout.camera_mode_button, this, false
                 )
             ).apply {
-                setText(cameraMode.title)
+                setText(
+                    when (cameraMode) {
+                        CameraMode.PHOTO -> R.string.camera_mode_photo
+                        CameraMode.VIDEO -> R.string.camera_mode_video
+                        CameraMode.QR -> R.string.camera_mode_qr
+                    }
+                )
                 setOnClickListener { onModeSelectedCallback(cameraMode) }
             }.also {
                 cameraModeButtonsLinearLayout.addView(it)
