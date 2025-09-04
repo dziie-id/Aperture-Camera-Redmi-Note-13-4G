@@ -700,10 +700,10 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
                 micButton.isVisible = cameraMode == CameraMode.VIDEO
 
                 // Update secondary bottom bar buttons
-                secondaryBottomBarLayout.isVisible = cameraMode != CameraMode.QR
+                secondaryBottomBarLayout.isInvisible = cameraMode == CameraMode.QR
 
                 // Update primary bar buttons
-                primaryBarLayout.isVisible = cameraMode != CameraMode.QR
+                primaryBarLayout.isInvisible = cameraMode == CameraMode.QR
 
                 // Update Google Lens button
                 googleLensButton.isVisible = cameraMode == CameraMode.QR && isGoogleLensAvailable
