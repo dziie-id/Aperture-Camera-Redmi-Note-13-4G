@@ -22,7 +22,7 @@ sealed interface Preference<T> {
      * Get the value of the preference from the preferences.
      *
      * @param sharedPreferences The [SharedPreferences] to get the value from
-     * @return The value of the preference, or null if it doesn't exist
+     * @return The value of the preference
      */
     fun getValue(sharedPreferences: SharedPreferences): T
 
@@ -216,7 +216,7 @@ sealed interface Preference<T> {
             key = key,
             defaultValue = defaultValue,
             enumValues = enumToPreferenceValue.keys.filterNotNull().toSet(),
-            enumMapper = { enumToPreferenceValue.getValue(it) },
+            enumMapper = enumToPreferenceValue::getValue,
         )
 
         @Suppress("UNCHECKED_CAST")
