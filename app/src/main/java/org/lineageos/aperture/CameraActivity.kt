@@ -83,6 +83,7 @@ import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.lineageos.aperture.ext.camera2CameraControl
+import org.lineageos.aperture.ext.flashMode
 import org.lineageos.aperture.ext.mapToRange
 import org.lineageos.aperture.ext.px
 import org.lineageos.aperture.ext.scale
@@ -1545,6 +1546,14 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
         val cameraSelector = viewModel.getExtensionEnabledCameraSelector(
             cameraConfiguration.camera, cameraConfiguration.extensionMode
         )
+
+        // Workaround: We cannot set flash mode to screen with a non front facing camera.
+        // VM will set the correct value later on
+        if (cameraConfiguration.camera.cameraFacing != CameraFacing.FRONT
+            && viewModel.cameraController.flashMode == FlashMode.SCREEN
+        ) {
+            viewModel.cameraController.flashMode = FlashMode.OFF
+        }
 
         // Bind use cases to camera
         viewModel.cameraController.cameraSelector = cameraSelector
