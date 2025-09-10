@@ -1446,96 +1446,6 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
 
     fun fileExists(uri: Uri) = mediaRepository.fileExists(uri)
 
-    @androidx.annotation.OptIn(ExperimentalZeroShutterLag::class)
-    fun buildCamera2Options(
-        cameraConfiguration: CameraConfiguration,
-    ) = CameraConfiguration.Camera2Options(
-        edgeMode = preferencesRepository.edgeMode.value?.takeIf {
-            cameraConfiguration.camera.supportedEdgeModes.contains(it) && when (
-                cameraConfiguration
-            ) {
-                is CameraConfiguration.Photo ->
-                    cameraConfiguration.photoCaptureMode != ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
-                            || EdgeMode.ALLOWED_MODES_ON_ZSL.contains(it)
-
-                is CameraConfiguration.Video ->
-                    EdgeMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
-
-                is CameraConfiguration.Qr -> false
-            }
-        },
-        noiseReductionMode = preferencesRepository.noiseReductionMode.value?.takeIf {
-            cameraConfiguration.camera.supportedNoiseReductionModes.contains(it) && when (
-                cameraConfiguration
-            ) {
-                is CameraConfiguration.Photo ->
-                    cameraConfiguration.photoCaptureMode != ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
-                            || NoiseReductionMode.ALLOWED_MODES_ON_ZSL.contains(it)
-
-                is CameraConfiguration.Video ->
-                    NoiseReductionMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
-
-                is CameraConfiguration.Qr -> false
-            }
-        },
-        shadingMode = preferencesRepository.shadingMode.value?.takeIf {
-            cameraConfiguration.camera.supportedShadingModes.contains(it) && when (
-                cameraConfiguration
-            ) {
-                is CameraConfiguration.Photo ->
-                    cameraConfiguration.photoCaptureMode != ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
-                            || ShadingMode.ALLOWED_MODES_ON_ZSL.contains(it)
-
-                is CameraConfiguration.Video ->
-                    ShadingMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
-
-                is CameraConfiguration.Qr -> false
-            }
-        },
-        colorCorrectionAberrationMode = preferencesRepository.colorCorrectionAberrationMode.value?.takeIf {
-            cameraConfiguration.camera.supportedColorCorrectionAberrationModes.contains(it) && when (
-                cameraConfiguration
-            ) {
-                is CameraConfiguration.Photo ->
-                    cameraConfiguration.photoCaptureMode != ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
-                            || ColorCorrectionAberrationMode.ALLOWED_MODES_ON_ZSL.contains(it)
-
-                is CameraConfiguration.Video ->
-                    ColorCorrectionAberrationMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
-
-                is CameraConfiguration.Qr -> false
-            }
-        },
-        distortionCorrectionMode = preferencesRepository.distortionCorrectionMode.value?.takeIf {
-            cameraConfiguration.camera.supportedDistortionCorrectionModes.contains(it) && when (
-                cameraConfiguration
-            ) {
-                is CameraConfiguration.Photo ->
-                    cameraConfiguration.photoCaptureMode != ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
-                            || DistortionCorrectionMode.ALLOWED_MODES_ON_ZSL.contains(it)
-
-                is CameraConfiguration.Video ->
-                    DistortionCorrectionMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
-
-                is CameraConfiguration.Qr -> false
-            }
-        },
-        hotPixelMode = preferencesRepository.hotPixelMode.value?.takeIf {
-            cameraConfiguration.camera.supportedHotPixelModes.contains(it) && when (
-                cameraConfiguration
-            ) {
-                is CameraConfiguration.Photo ->
-                    cameraConfiguration.photoCaptureMode != ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
-                            || HotPixelMode.ALLOWED_MODES_ON_ZSL.contains(it)
-
-                is CameraConfiguration.Video ->
-                    HotPixelMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
-
-                is CameraConfiguration.Qr -> false
-            }
-        },
-    )
-
     /**
      * Emit a new event to let the activity handle it.
      */
@@ -1588,6 +1498,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
                 CameraConfiguration.Photo(
                     camera = camera,
                     extensionMode = preferencesRepository.photoEffect.value,
+                    camera2Options = buildPhotoCamera2Options(camera, photoCaptureMode),
                     photoCaptureMode = photoCaptureMode,
                     photoAspectRatio = preferencesRepository.photoAspectRatio.value,
                     enableHighResolution = overlaysRepository.enableHighResolution,
@@ -1617,6 +1528,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
 
                 CameraConfiguration.Video(
                     camera = camera,
+                    camera2Options = buildVideoCamera2Options(camera),
                     videoQuality = videoQuality,
                     videoFrameRate = videoFrameRate,
                     videoDynamicRange = videoDynamicRange,
@@ -1630,6 +1542,103 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
             )
         }
     }
+
+    @androidx.annotation.OptIn(ExperimentalZeroShutterLag::class)
+    private fun buildPhotoCamera2Options(
+        camera: Camera,
+        photoCaptureMode: Int,
+    ) = CameraConfiguration.Camera2Options(
+        edgeMode = preferencesRepository.edgeMode.value?.takeIf {
+            camera.supportedEdgeModes.contains(it) && when (
+                photoCaptureMode
+            ) {
+                ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG ->
+                    EdgeMode.ALLOWED_MODES_ON_ZSL.contains(it)
+
+                else -> true
+            }
+        },
+        noiseReductionMode = preferencesRepository.noiseReductionMode.value?.takeIf {
+            camera.supportedNoiseReductionModes.contains(it) && when (
+                photoCaptureMode
+            ) {
+                ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG ->
+                    NoiseReductionMode.ALLOWED_MODES_ON_ZSL.contains(it)
+
+                else -> true
+            }
+        },
+        shadingMode = preferencesRepository.shadingMode.value?.takeIf {
+            camera.supportedShadingModes.contains(it) && when (
+                photoCaptureMode
+            ) {
+                ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG ->
+                    ShadingMode.ALLOWED_MODES_ON_ZSL.contains(it)
+
+                else -> true
+            }
+        },
+        colorCorrectionAberrationMode = preferencesRepository.colorCorrectionAberrationMode.value?.takeIf {
+            camera.supportedColorCorrectionAberrationModes.contains(it) && when (
+                photoCaptureMode
+            ) {
+                ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG ->
+                    ColorCorrectionAberrationMode.ALLOWED_MODES_ON_ZSL.contains(it)
+
+                else -> true
+            }
+        },
+        distortionCorrectionMode = preferencesRepository.distortionCorrectionMode.value?.takeIf {
+            camera.supportedDistortionCorrectionModes.contains(it) && when (
+                photoCaptureMode
+            ) {
+                ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG ->
+                    DistortionCorrectionMode.ALLOWED_MODES_ON_ZSL.contains(it)
+
+                else -> true
+            }
+        },
+        hotPixelMode = preferencesRepository.hotPixelMode.value?.takeIf {
+            camera.supportedHotPixelModes.contains(it) && when (
+                photoCaptureMode
+            ) {
+                ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG ->
+                    HotPixelMode.ALLOWED_MODES_ON_ZSL.contains(it)
+
+                else -> true
+            }
+        },
+    )
+
+    @androidx.annotation.OptIn(ExperimentalZeroShutterLag::class)
+    private fun buildVideoCamera2Options(
+        camera: Camera,
+    ) = CameraConfiguration.Camera2Options(
+        edgeMode = preferencesRepository.edgeMode.value?.takeIf {
+            camera.supportedEdgeModes.contains(it)
+                    && EdgeMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
+        },
+        noiseReductionMode = preferencesRepository.noiseReductionMode.value?.takeIf {
+            camera.supportedNoiseReductionModes.contains(it)
+                    && NoiseReductionMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
+        },
+        shadingMode = preferencesRepository.shadingMode.value?.takeIf {
+            camera.supportedShadingModes.contains(it)
+                    && ShadingMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
+        },
+        colorCorrectionAberrationMode = preferencesRepository.colorCorrectionAberrationMode.value?.takeIf {
+            camera.supportedColorCorrectionAberrationModes.contains(it)
+                    && ColorCorrectionAberrationMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
+        },
+        distortionCorrectionMode = preferencesRepository.distortionCorrectionMode.value?.takeIf {
+            camera.supportedDistortionCorrectionModes.contains(it)
+                    && DistortionCorrectionMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
+        },
+        hotPixelMode = preferencesRepository.hotPixelMode.value?.takeIf {
+            camera.supportedHotPixelModes.contains(it)
+                    && HotPixelMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
+        },
+    )
 
     /**
      * Reconfigure the camera session. This helper method will also handle concurrency.

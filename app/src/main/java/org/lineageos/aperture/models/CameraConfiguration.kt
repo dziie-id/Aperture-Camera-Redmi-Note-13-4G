@@ -31,7 +31,21 @@ sealed interface CameraConfiguration {
         val colorCorrectionAberrationMode: ColorCorrectionAberrationMode?,
         val distortionCorrectionMode: DistortionCorrectionMode?,
         val hotPixelMode: HotPixelMode?,
-    )
+    ) {
+        companion object {
+            /**
+             * Default instance that will not alter Camera2 options.
+             */
+            val DEFAULT = Camera2Options(
+                edgeMode = null,
+                noiseReductionMode = null,
+                shadingMode = null,
+                colorCorrectionAberrationMode = null,
+                distortionCorrectionMode = null,
+                hotPixelMode = null,
+            )
+        }
+    }
 
     /**
      * The [Camera] to use.
@@ -50,6 +64,11 @@ sealed interface CameraConfiguration {
     val extensionMode: Int
 
     /**
+     * The [Camera2Options] to use.
+     */
+    val camera2Options: Camera2Options
+
+    /**
      * Photo mode configuration.
      *
      * @param photoAspectRatio The [AspectRatio.Ratio] to use
@@ -59,6 +78,7 @@ sealed interface CameraConfiguration {
     data class Photo(
         override val camera: Camera,
         override val extensionMode: Int,
+        override val camera2Options: Camera2Options,
         val photoCaptureMode: Int,
         val photoAspectRatio: Int,
         val enableHighResolution: Boolean,
@@ -77,6 +97,7 @@ sealed interface CameraConfiguration {
      */
     data class Video(
         override val camera: Camera,
+        override val camera2Options: Camera2Options,
         val videoQuality: Quality,
         val videoFrameRate: FrameRate?,
         val videoDynamicRange: VideoDynamicRange,
@@ -95,5 +116,6 @@ sealed interface CameraConfiguration {
     ) : CameraConfiguration {
         override val cameraMode = CameraMode.QR
         override val extensionMode = ExtensionMode.NONE
+        override val camera2Options = Camera2Options.DEFAULT
     }
 }

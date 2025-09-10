@@ -1568,7 +1568,7 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
                 return@launch
             }
 
-            val camera2Options = viewModel.buildCamera2Options(cameraConfiguration)
+            val camera2Options = cameraConfiguration.camera2Options
 
             // Set Camera2 CaptureRequest options
             camera2CameraControl.captureRequestOptions = CaptureRequestOptions.Builder()
