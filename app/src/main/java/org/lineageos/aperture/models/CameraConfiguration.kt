@@ -49,12 +49,6 @@ sealed interface CameraConfiguration {
     @ExtensionMode.Mode
     val extensionMode: Int
 
-    fun clone(
-        camera: Camera = this.camera,
-        cameraMode: CameraMode = this.cameraMode,
-        @ExtensionMode.Mode extensionMode: Int = this.extensionMode,
-    ): CameraConfiguration
-
     /**
      * Photo mode configuration.
      *
@@ -70,15 +64,6 @@ sealed interface CameraConfiguration {
         val enableHighResolution: Boolean,
     ) : CameraConfiguration {
         override val cameraMode = CameraMode.PHOTO
-
-        override fun clone(
-            camera: Camera,
-            cameraMode: CameraMode,
-            @ExtensionMode.Mode extensionMode: Int,
-        ) = copy(
-            camera = camera,
-            extensionMode = extensionMode,
-        )
     }
 
     /**
@@ -100,14 +85,6 @@ sealed interface CameraConfiguration {
     ) : CameraConfiguration {
         override val cameraMode = CameraMode.VIDEO
         override val extensionMode = ExtensionMode.NONE
-
-        override fun clone(
-            camera: Camera,
-            cameraMode: CameraMode,
-            extensionMode: Int,
-        ) = copy(
-            camera = camera,
-        )
     }
 
     /**
@@ -118,13 +95,5 @@ sealed interface CameraConfiguration {
     ) : CameraConfiguration {
         override val cameraMode = CameraMode.QR
         override val extensionMode = ExtensionMode.NONE
-
-        override fun clone(
-            camera: Camera,
-            cameraMode: CameraMode,
-            extensionMode: Int,
-        ) = copy(
-            camera = camera,
-        )
     }
 }

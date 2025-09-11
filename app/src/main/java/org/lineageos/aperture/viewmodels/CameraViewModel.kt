@@ -1226,18 +1226,19 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
     /**
      * Cycle the extension mode.
      */
-    fun cycleExtensionMode() = updateConfiguration<CameraConfiguration> { cameraConfiguration ->
-        val supportedExtensionModes = cameraConfiguration.camera.supportedExtensionModes
-        val extensionMode = supportedExtensionModes.toList().sorted().next(
-            cameraConfiguration.extensionMode
-        ) ?: error("No extension mode supported by the camera")
+    fun cycleExtensionMode() =
+        updateConfiguration<CameraConfiguration.Photo> { cameraConfiguration ->
+            val supportedExtensionModes = cameraConfiguration.camera.supportedExtensionModes
+            val extensionMode = supportedExtensionModes.toList().sorted().next(
+                cameraConfiguration.extensionMode
+            ) ?: error("No extension mode supported by the camera")
 
-        preferencesRepository.photoEffect.value = extensionMode
+            preferencesRepository.photoEffect.value = extensionMode
 
-        cameraConfiguration.clone(
-            extensionMode = extensionMode,
-        )
-    }
+            cameraConfiguration.copy(
+                extensionMode = extensionMode,
+            )
+        }
 
     /**
      * Cycle the photo aspect ratio.
