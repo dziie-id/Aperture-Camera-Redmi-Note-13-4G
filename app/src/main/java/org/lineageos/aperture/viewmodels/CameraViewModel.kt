@@ -1478,69 +1478,67 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
     private fun createInitialCameraConfiguration(
         camera: Camera,
         cameraMode: CameraMode,
-    ): CameraConfiguration {
-        return when (cameraMode) {
-            CameraMode.PHOTO -> {
-                // Enable ZSL when requested by the user and supported by the camera
-                val photoCaptureMode = when (
-                    val photoCaptureMode = preferencesRepository.photoCaptureMode.value
+    ) = when (cameraMode) {
+        CameraMode.PHOTO -> {
+            // Enable ZSL when requested by the user and supported by the camera
+            val photoCaptureMode = when (
+                val photoCaptureMode = preferencesRepository.photoCaptureMode.value
+            ) {
+                ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY -> when (
+                    preferencesRepository.enableZsl.value && camera.supportsZsl
                 ) {
-                    ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY -> when (
-                        preferencesRepository.enableZsl.value && camera.supportsZsl
-                    ) {
-                        true -> ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
-                        false -> ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
-                    }
-
-                    else -> photoCaptureMode
+                    true -> ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
+                    false -> ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
                 }
 
-                CameraConfiguration.Photo(
-                    camera = camera,
-                    extensionMode = preferencesRepository.photoEffect.value,
-                    camera2Options = buildPhotoCamera2Options(camera, photoCaptureMode),
-                    photoCaptureMode = photoCaptureMode,
-                    photoAspectRatio = preferencesRepository.photoAspectRatio.value,
-                    enableHighResolution = overlaysRepository.enableHighResolution,
-                )
+                else -> photoCaptureMode
             }
 
-            CameraMode.VIDEO -> {
-                val videoQuality = preferencesRepository.videoQuality.value.takeIf {
-                    camera.supportedVideoQualities.contains(it)
-                } ?: camera.supportedVideoQualities.keys.firstOrNull() ?: error(
-                    "Camera ${camera.cameraId} does not support any video quality"
-                )
-
-                val videoQualityInfo = camera.supportedVideoQualities[videoQuality] ?: error(
-                    "Camera ${camera.cameraId} does not support video quality $videoQuality"
-                )
-
-                val videoFrameRate = preferencesRepository.videoFrameRate.value.takeIf {
-                    videoQualityInfo.supportedFrameRates.contains(it)
-                } ?: videoQualityInfo.supportedFrameRates.firstOrNull()
-
-                val videoDynamicRange = preferencesRepository.videoDynamicRange.value.takeIf {
-                    videoQualityInfo.supportedDynamicRanges.contains(it)
-                } ?: videoQualityInfo.supportedDynamicRanges.firstOrNull() ?: error(
-                    "No video dynamic range supported by the camera"
-                )
-
-                CameraConfiguration.Video(
-                    camera = camera,
-                    camera2Options = buildVideoCamera2Options(camera),
-                    videoQuality = videoQuality,
-                    videoFrameRate = videoFrameRate,
-                    videoDynamicRange = videoDynamicRange,
-                    videoMirrorMode = preferencesRepository.videoMirrorMode.value,
-                    enableVideoStabilization = preferencesRepository.videoStabilization.value,
-                )
-            }
-
-            CameraMode.QR -> CameraConfiguration.Qr(
+            CameraConfiguration.Photo(
                 camera = camera,
+                extensionMode = preferencesRepository.photoEffect.value,
+                camera2Options = buildPhotoCamera2Options(camera, photoCaptureMode),
+                photoCaptureMode = photoCaptureMode,
+                photoAspectRatio = preferencesRepository.photoAspectRatio.value,
+                enableHighResolution = overlaysRepository.enableHighResolution,
             )
         }
+
+        CameraMode.VIDEO -> {
+            val videoQuality = preferencesRepository.videoQuality.value.takeIf {
+                camera.supportedVideoQualities.contains(it)
+            } ?: camera.supportedVideoQualities.keys.firstOrNull() ?: error(
+                "Camera ${camera.cameraId} does not support any video quality"
+            )
+
+            val videoQualityInfo = camera.supportedVideoQualities[videoQuality] ?: error(
+                "Camera ${camera.cameraId} does not support video quality $videoQuality"
+            )
+
+            val videoFrameRate = preferencesRepository.videoFrameRate.value.takeIf {
+                videoQualityInfo.supportedFrameRates.contains(it)
+            } ?: videoQualityInfo.supportedFrameRates.firstOrNull()
+
+            val videoDynamicRange = preferencesRepository.videoDynamicRange.value.takeIf {
+                videoQualityInfo.supportedDynamicRanges.contains(it)
+            } ?: videoQualityInfo.supportedDynamicRanges.firstOrNull() ?: error(
+                "No video dynamic range supported by the camera"
+            )
+
+            CameraConfiguration.Video(
+                camera = camera,
+                camera2Options = buildVideoCamera2Options(camera),
+                videoQuality = videoQuality,
+                videoFrameRate = videoFrameRate,
+                videoDynamicRange = videoDynamicRange,
+                videoMirrorMode = preferencesRepository.videoMirrorMode.value,
+                enableVideoStabilization = preferencesRepository.videoStabilization.value,
+            )
+        }
+
+        CameraMode.QR -> CameraConfiguration.Qr(
+            camera = camera,
+        )
     }
 
     @androidx.annotation.OptIn(ExperimentalZeroShutterLag::class)
