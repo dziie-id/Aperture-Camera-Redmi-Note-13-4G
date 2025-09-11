@@ -971,6 +971,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
         )
 
         // Create output options object which contains file + metadata
+        val timestamp = System.currentTimeMillis()
         val outputOptions = StorageUtils.getPhotoMediaStoreOutputOptions(
             applicationContext.contentResolver,
             ImageCapture.Metadata().apply {
@@ -982,6 +983,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
                 }
             },
             mimeType,
+            timestamp,
             photoOutputStream,
         )
 
@@ -1047,6 +1049,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
                         }
                     },
                     "image/x-adobe-dng",
+                    timestamp,
                 )
 
                 cameraController.takePicture(
@@ -1083,6 +1086,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
         // Create output options object which contains file + metadata
         val outputOptions = StorageUtils.getVideoMediaStoreOutputOptions(
             applicationContext.contentResolver,
+            System.currentTimeMillis(),
             location.value.takeUnless { inSingleCaptureMode.value }
         )
 
