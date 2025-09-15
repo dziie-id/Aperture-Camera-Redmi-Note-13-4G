@@ -37,7 +37,7 @@ object StorageUtils {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 put(MediaStore.Images.Media.RELATIVE_PATH, STORAGE_DESTINATION)
             }
-            put(MediaStore.Images.Media.DATE_TAKEN, timestamp);
+            put(MediaStore.Images.Media.DATE_TAKEN, timestamp)
         }
 
         val outputFileOptions = outputStream?.let {
