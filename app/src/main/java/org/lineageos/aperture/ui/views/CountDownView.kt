@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.lineageos.aperture.ui
+package org.lineageos.aperture.ui.views
 
 import android.content.Context
 import android.graphics.Rect

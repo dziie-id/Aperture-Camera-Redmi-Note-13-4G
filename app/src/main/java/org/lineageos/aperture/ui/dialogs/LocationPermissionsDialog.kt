@@ -1,9 +1,9 @@
 /*
- * SPDX-FileCopyrightText: 2023 The LineageOS Project
+ * SPDX-FileCopyrightText: 2023-2025 The LineageOS Project
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.lineageos.aperture.ui
+package org.lineageos.aperture.ui.dialogs
 
 import android.app.Activity
 import android.app.Dialog
