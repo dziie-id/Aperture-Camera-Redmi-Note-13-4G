@@ -22,7 +22,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
-import android.os.PowerManager
 import android.provider.MediaStore
 import android.util.Log
 import android.view.GestureDetector
@@ -115,6 +114,7 @@ import org.lineageos.aperture.models.Permission
 import org.lineageos.aperture.models.PermissionState
 import org.lineageos.aperture.models.PhotoOutputFormat
 import org.lineageos.aperture.models.Rotation
+import org.lineageos.aperture.models.ThermalStatus
 import org.lineageos.aperture.models.TimerMode
 import org.lineageos.aperture.models.VideoDynamicRange
 import org.lineageos.aperture.models.VideoMirrorMode
@@ -1064,43 +1064,44 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
         }
 
         launch {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                viewModel.thermalStatus.collectLatest { thermalStatus ->
-                    val showSnackBar = { stringId: Int ->
-                        Snackbar.make(
-                            secondaryBottomBarLayout,
-                            stringId,
-                            Snackbar.LENGTH_INDEFINITE
-                        )
-                            .setAnchorView(secondaryBottomBarLayout)
-                            .setAction(android.R.string.ok) {
-                                // Do nothing
-                            }
-                            .show()
+            viewModel.thermalStatus.collectLatest { thermalStatus ->
+                val showSnackBar = { stringId: Int ->
+                    Snackbar.make(
+                        secondaryBottomBarLayout,
+                        stringId,
+                        Snackbar.LENGTH_INDEFINITE
+                    )
+                        .setAnchorView(secondaryBottomBarLayout)
+                        .setAction(android.R.string.ok) {
+                            // Do nothing
+                        }
+                        .show()
+                }
+
+                when (thermalStatus) {
+                    ThermalStatus.NONE,
+                    ThermalStatus.LIGHT -> Unit
+
+                    ThermalStatus.MODERATE -> {
+                        showSnackBar(R.string.thermal_status_moderate)
                     }
 
-                    when (thermalStatus) {
-                        PowerManager.THERMAL_STATUS_MODERATE -> {
-                            showSnackBar(R.string.thermal_status_moderate)
-                        }
+                    ThermalStatus.SEVERE -> {
+                        showSnackBar(R.string.thermal_status_severe)
+                    }
 
-                        PowerManager.THERMAL_STATUS_SEVERE -> {
-                            showSnackBar(R.string.thermal_status_severe)
-                        }
+                    ThermalStatus.CRITICAL -> {
+                        showSnackBar(R.string.thermal_status_critical)
+                    }
 
-                        PowerManager.THERMAL_STATUS_CRITICAL -> {
-                            showSnackBar(R.string.thermal_status_critical)
-                        }
+                    ThermalStatus.EMERGENCY -> {
+                        showSnackBar(R.string.thermal_status_emergency)
+                        finish()
+                    }
 
-                        PowerManager.THERMAL_STATUS_EMERGENCY -> {
-                            showSnackBar(R.string.thermal_status_emergency)
-                            finish()
-                        }
-
-                        PowerManager.THERMAL_STATUS_SHUTDOWN -> {
-                            showSnackBar(R.string.thermal_status_shutdown)
-                            finish()
-                        }
+                    ThermalStatus.SHUTDOWN -> {
+                        showSnackBar(R.string.thermal_status_shutdown)
+                        finish()
                     }
                 }
             }

@@ -16,7 +16,6 @@ import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import android.view.OrientationEventListener
-import androidx.annotation.RequiresApi
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.ExperimentalZeroShutterLag
 import androidx.camera.core.ImageCapture
@@ -48,6 +47,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.runningFold
@@ -82,6 +82,7 @@ import org.lineageos.aperture.models.NoiseReductionMode
 import org.lineageos.aperture.models.PhotoOutputFormat
 import org.lineageos.aperture.models.Rotation
 import org.lineageos.aperture.models.ShadingMode
+import org.lineageos.aperture.models.ThermalStatus
 import org.lineageos.aperture.models.TimerMode
 import org.lineageos.aperture.qr.QrImageAnalyzer
 import org.lineageos.aperture.repositories.CameraRepository
@@ -467,13 +468,28 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
             initialValue = false
         )
 
-    @RequiresApi(Build.VERSION_CODES.Q)
-    val thermalStatus = powerManager.thermalStatusFlow()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val thermalStatus = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        powerManager.thermalStatusFlow().mapLatest { thermalStatus ->
+            when (thermalStatus) {
+                PowerManager.THERMAL_STATUS_NONE -> ThermalStatus.NONE
+                PowerManager.THERMAL_STATUS_LIGHT -> ThermalStatus.LIGHT
+                PowerManager.THERMAL_STATUS_MODERATE -> ThermalStatus.MODERATE
+                PowerManager.THERMAL_STATUS_SEVERE -> ThermalStatus.SEVERE
+                PowerManager.THERMAL_STATUS_CRITICAL -> ThermalStatus.CRITICAL
+                PowerManager.THERMAL_STATUS_EMERGENCY -> ThermalStatus.EMERGENCY
+                PowerManager.THERMAL_STATUS_SHUTDOWN -> ThermalStatus.SHUTDOWN
+                else -> error("Unknown thermal status: $thermalStatus")
+            }
+        }
+    } else {
+        flowOf(ThermalStatus.NONE)
+    }
         .flowOn(Dispatchers.IO)
-        .shareIn(
+        .stateIn(
             viewModelScope,
             started = SharingStarted.WhileSubscribed(),
-            replay = 1
+            initialValue = ThermalStatus.NONE,
         )
 
     /**
