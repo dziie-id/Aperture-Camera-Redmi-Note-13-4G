@@ -99,6 +99,12 @@
     <string name="photo_capture_mode_minimize_latency">Giảm thiểu độ trễ</string>
     <string name="enable_zsl_title">Bật ZSL khi khả dụng</string>
     <string name="enable_zsl_summary">Sử dụng chế độ Zero-Shutter Lag khi máy ảnh hỗ trợ. Ở chế độ này, hiệu ứng ảnh bị tắt. Lưu ý rằng chế độ này hiện đang thử nghiệm</string>
+    <string name="use_photo_jpeg_ultra_hdr_title">Lưu hình ảnh dưới dạng JPEG Ultra HDR</string>
+    <string name="use_photo_jpeg_ultra_hdr_summary">Lưu hình ảnh dưới dạng JPEG Ultra HDR khi có thể để cải thiện hình ảnh HDR</string>
+    <string name="enable_raw_image_capture_title">Cho phép chụp ảnh RAW</string>
+    <string name="enable_raw_image_capture_summary">Bật chụp ảnh RAW. Ảnh không thể được lưu trữ dưới dạng JPEG Ultra HDR khi chụp ảnh RAW được bật</string>
+    <string name="disable_jpeg_with_raw_title">Vô hiệu hóa JPEG với RAW</string>
+    <string name="disable_jpeg_with_raw_summary">Tắt JPEG khi chụp ảnh RAW được bật</string>
     <string name="photo_ffc_mirror_title">Lật camera trước</string>
     <string name="photo_ffc_mirror_summary">Lưu ảnh từ camera như lúc chúng xuất hiện trong bản xem trước</string>
     <string name="video_stabilization_title">Bật tính năng ổn định video</string>

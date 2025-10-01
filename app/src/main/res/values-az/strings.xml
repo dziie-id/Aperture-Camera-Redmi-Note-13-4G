@@ -99,6 +99,12 @@
     <string name="photo_capture_mode_minimize_latency">Minimum gecikmə</string>
     <string name="enable_zsl_title">Əlçatan olduqda ZSL-i fəallaşdır</string>
     <string name="enable_zsl_summary">Kamera dəstəklədikdə Sıfır Sürgü Gecikməsi (ZSL) rejimini istifadə edin. Bu rejimdə foto effektlər sıradan çıxardılır. Unutmayın ki, bu, hazırda təcrübi rejimdir.</string>
+    <string name="use_photo_jpeg_ultra_hdr_title">Təsvirləri JPEG Ultra HDR kimi saxla</string>
+    <string name="use_photo_jpeg_ultra_hdr_summary">HDR təsvirləri təkmilləşdirmək mümkün olduqda, təsvirləri JPEG Ultra HDR kimi saxla</string>
+    <string name="enable_raw_image_capture_title">RAW təsvir yaxalamanı fəallaşdır</string>
+    <string name="enable_raw_image_capture_summary">RAW təsvir yaxalamanı fəallaşdır. RAW yaxalama fəal olduqda, fotolar JPEG Ultra HDR kimi saxlanıla bilməz</string>
+    <string name="disable_jpeg_with_raw_title">RAW ilə JPEG-i sıradan çıxart</string>
+    <string name="disable_jpeg_with_raw_summary">RAW təsvir yaxalama fəal olduqda, JPEG-i sıradan çıxart</string>
     <string name="photo_ffc_mirror_title">Güzgü ön kamera</string>
     <string name="photo_ffc_mirror_summary">Ön kamera fotolarını önizləmədə göründüyü kimi saxla</string>
     <string name="video_stabilization_title">Video sabitləməni fəallaşdır</string>
