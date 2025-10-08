@@ -405,25 +405,6 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
             }
         }
 
-        if (viewModel.initialCameraMode == CameraMode.VIDEO && !viewModel.isVideoRecordingAvailable.value) {
-            // If an app asked for a video we have to bail out
-            if (viewModel.inSingleCaptureMode.value) {
-                Toast.makeText(
-                    this, getString(R.string.camcorder_unsupported_toast), Toast.LENGTH_LONG
-                ).show()
-                finish()
-                return
-            }
-            // Fallback to photo mode
-            viewModel.initialCameraMode = CameraMode.PHOTO
-        }
-
-        // Initialize the camera configuration
-        if (!viewModel.initializeCameraConfiguration()) {
-            noCamera()
-            return
-        }
-
         // Setup window insets
         ViewCompat.setOnApplyWindowInsetsListener(mainLayout) { _, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -1406,6 +1387,26 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
                 // Attach CameraController to ScreenFlashView
                 screenFlashView.setController(viewModel.cameraController)
                 screenFlashView.setScreenFlashWindow(window)
+
+                val videoRecordingAvailable = viewModel.isVideoRecordingAvailable()
+                if (viewModel.initialCameraMode == CameraMode.VIDEO && !videoRecordingAvailable) {
+                    // If an app asked for a video we have to bail out
+                    if (viewModel.inSingleCaptureMode.value) {
+                        Toast.makeText(
+                            this@CameraActivity,
+                            R.string.camcorder_unsupported_toast,
+                            Toast.LENGTH_LONG,
+                        ).show()
+                        finish()
+                        return@collect
+                    }
+                    // Fallback to photo mode
+                    viewModel.initialCameraMode = CameraMode.PHOTO
+                }
+
+                if (!viewModel.initializeCameraConfiguration()) {
+                    noCamera()
+                }
 
                 initialized = true
             }
