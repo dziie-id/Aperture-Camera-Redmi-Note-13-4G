@@ -1,0 +1,2 @@
+- Enable Aux
+- Remove Thermal Throtle
