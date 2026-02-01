@@ -81,7 +81,12 @@ class LensSelectorLayout @JvmOverloads constructor(
                             onResetZoomRatioCallback()
                         }
                     }
-                    text = formatZoomRatio(camera.intrinsicZoomRatio)
+                    text = when (camera.cameraId.toIntOrNull()) {
+                        0 -> "Main"
+                        2 -> "Wide"
+                        3 -> "Macro"
+                        else -> formatZoomRatio(camera.intrinsicZoomRatio)
+                    }
                 }
 
                 addView(button)
@@ -117,7 +122,7 @@ class LensSelectorLayout @JvmOverloads constructor(
     private fun inflateButton(): Button {
         val button = layoutInflater.inflate(R.layout.lens_selector_button, this, false) as Button
         return button.apply {
-            layoutParams = LayoutParams(32.px, 32.px).apply {
+            layoutParams = LayoutParams(40.px, 32.px).apply {
                 setMargins(5)
             }
         }
@@ -155,11 +160,22 @@ class LensSelectorLayout @JvmOverloads constructor(
     @Suppress("SetTextI18n")
     private fun updateButtonAttributes(button: Button, currentCamera: Boolean) {
         button.isSelected = currentCamera
-        val formattedZoomRatio = formatZoomRatio(buttonToApproximateZoomRatio[button]!!)
+        val approximateZoomRatio = buttonToApproximateZoomRatio[button]!!
+        val cameraId = buttonToCamera[button]?.cameraId?.toIntOrNull()
         button.text = if (currentCamera) {
-            "${formattedZoomRatio}×"
+            when (cameraId) {
+                0 -> "Main"
+                2 -> "Wide"
+                3 -> "Macro"
+                else -> "${formatZoomRatio(approximateZoomRatio)}×"
+            }
         } else {
-            formattedZoomRatio
+            when (cameraId) {
+                0 -> "Main"
+                2 -> "Wide"
+                3 -> "Macro"
+                else -> formatZoomRatio(approximateZoomRatio)
+            }
         }
         button.rotation = screenRotation.compensationValue.toFloat()
     }

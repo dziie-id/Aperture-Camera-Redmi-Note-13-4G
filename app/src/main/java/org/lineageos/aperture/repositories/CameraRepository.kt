@@ -151,6 +151,8 @@ class CameraRepository(
         private val mainCameraIds = setOf(
             "0",
             "1",
+            "2",
+            "3",
         )
     }
 }
