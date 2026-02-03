@@ -40,7 +40,9 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Aperture"
-        tools:targetApi="tiramisu">
+        tools:targetApi="tiramisu"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true">
 
         <uses-library
             android:name="androidx.camera.extensions.impl"

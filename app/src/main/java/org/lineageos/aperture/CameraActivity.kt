@@ -5,6 +5,8 @@
 
 package org.lineageos.aperture
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import android.animation.ValueAnimator
 import android.app.KeyguardManager
 import android.content.ClipData
@@ -1607,10 +1609,14 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
         viewModel.cameraController.setEnabledUseCases(cameraUseCases)
 
         // Bind camera controller to lifecycle
-        viewModel.cameraController.bindToLifecycle(this)
+
 
         // Wait for camera to be ready
         lifecycleScope.launch {
+            delay(600)
+            
+            viewModel.cameraController.bindToLifecycle(this@CameraActivity)
+            
             viewModel.cameraController.initializationFuture.await()
 
             val camera2CameraControl = viewModel.cameraController.camera2CameraControl ?: run {
