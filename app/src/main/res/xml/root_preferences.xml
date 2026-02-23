@@ -93,6 +93,13 @@
             app:summary="@string/photo_ffc_mirror_summary"
             app:title="@string/photo_ffc_mirror_title" />
 
+        <SwitchPreference
+            app:defaultValue="false"
+            app:iconSpaceReserved="false"
+            app:key="photo_watermark"
+            app:summary="@string/photo_watermark_summary"
+            app:title="@string/photo_watermark_title" />
+
     </PreferenceCategory>
 
     <PreferenceCategory

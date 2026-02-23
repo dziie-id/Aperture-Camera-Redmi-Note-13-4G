@@ -37,6 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -91,6 +92,7 @@ import org.lineageos.aperture.models.TimerMode
 import org.lineageos.aperture.qr.QrImageAnalyzer
 import org.lineageos.aperture.repositories.CameraRepository
 import org.lineageos.aperture.utils.CameraSoundsUtils
+import org.lineageos.aperture.utils.WatermarkUtils
 import org.lineageos.aperture.utils.StorageUtils
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
@@ -1089,12 +1091,6 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
                     "Photo capture succeeded: ${output.savedUri} format = ${output.imageFormat}"
                 )
 
-                if (!inSingleCaptureMode.value) {
-                    output.savedUri?.let {
-                        mediaRepository.broadcastNewPicture(it)
-                    }
-                }
-
                 if (imageCount.decrementAndGet() == 0) {
                     cameraState.value = CameraState.IDLE
                 }
@@ -1106,12 +1102,69 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
                     return
                 }
 
-                emitEvent(
-                    Event.PhotoCaptureStatus.ImageSaved(
-                        output,
-                        photoOutputStream,
-                    )
-                )
+                // Watermark when toggle is on (Settings → Photo watermark). Only for photo mode (JPEG).
+                val watermarkEnabled = preferencesRepository.photoWatermark.value &&
+                    imageOutputFormat != ImageCapture.OUTPUT_FORMAT_RAW
+
+                when {
+                    // Normal camera: photo saved to URI → watermark file then broadcast + emit
+                    watermarkEnabled && output.savedUri != null -> {
+                        viewModelScope.launch {
+                            WatermarkUtils.applyWatermarkToUri(
+                                output.savedUri!!,
+                                timestamp,
+                                applicationContext.contentResolver,
+                                location.value,
+                            )
+                            withContext(Dispatchers.Main) {
+                                if (!inSingleCaptureMode.value) {
+                                    mediaRepository.broadcastNewPicture(output.savedUri!!)
+                                }
+                                emitEvent(
+                                    Event.PhotoCaptureStatus.ImageSaved(
+                                        output,
+                                        photoOutputStream,
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    // Single capture (another app): photo in bytes → watermark bytes then emit
+                    watermarkEnabled && photoOutputStream != null -> {
+                        val stream = photoOutputStream
+                        viewModelScope.launch {
+                            val watermarkedBytes = withContext(Dispatchers.IO) {
+                                WatermarkUtils.applyWatermarkToJpegBytes(
+                                    stream.toByteArray(),
+                                    timestamp,
+                                    location.value,
+                                )
+                            }
+                            withContext(Dispatchers.Main) {
+                                emitEvent(
+                                    Event.PhotoCaptureStatus.ImageSaved(
+                                        output,
+                                        photoOutputStream,
+                                        watermarkedPhotoBytes = watermarkedBytes,
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    else -> {
+                        if (!inSingleCaptureMode.value) {
+                            output.savedUri?.let {
+                                mediaRepository.broadcastNewPicture(it)
+                            }
+                        }
+                        emitEvent(
+                            Event.PhotoCaptureStatus.ImageSaved(
+                                output,
+                                photoOutputStream,
+                            )
+                        )
+                    }
+                }
             }
 
             override fun onError(exc: ImageCaptureException) {
@@ -1868,8 +1921,9 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
 
         private const val SINGLE_CAPTURE_PHOTO_BUFFER_INITIAL_SIZE_BYTES = 8 * 1024 * 1024 // 8 MiB
 
-        private val cameraFacingComparator = Comparator.comparingInt<CameraFacing> {
+        private val cameraFacingComparator = Comparator.comparingInt<CameraFacing?> {
             when (it) {
+                null -> 3
                 CameraFacing.UNKNOWN -> 3
                 CameraFacing.FRONT -> 1
                 CameraFacing.BACK -> 0

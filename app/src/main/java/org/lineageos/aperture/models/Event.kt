@@ -38,6 +38,8 @@ sealed interface Event {
         data class ImageSaved(
             val output: ImageCapture.OutputFileResults,
             val photoOutputStream: ByteArrayOutputStream?,
+            /** When non-null (e.g. single-capture with watermark), use this for preview and result. */
+            val watermarkedPhotoBytes: ByteArray? = null,
         ) : PhotoCaptureStatus
 
         data class Error(

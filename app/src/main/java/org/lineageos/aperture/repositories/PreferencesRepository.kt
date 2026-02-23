@@ -172,6 +172,14 @@ class PreferencesRepository(
     ).asPreferenceHolder()
 
     /**
+     * Whether to add a date/time watermark at the bottom of each photo.
+     */
+    val photoWatermark = primitivePreference(
+        key = "photo_watermark",
+        defaultValue = false,
+    ).asPreferenceHolder()
+
+    /**
      * Desired [FlashMode] for photos.
      */
     val photoFlashMode = enumPreference(

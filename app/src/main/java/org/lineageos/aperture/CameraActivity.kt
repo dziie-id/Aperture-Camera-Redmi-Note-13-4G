@@ -685,12 +685,15 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
                                 event.output.savedUri?.let {
                                     openCapturePreview(it, MediaType.PHOTO)
                                 }
-                                event.photoOutputStream?.use {
-                                    openCapturePreview(
-                                        ByteArrayInputStream(
-                                            event.photoOutputStream.toByteArray()
+                                when (val bytes = event.watermarkedPhotoBytes) {
+                                    null -> event.photoOutputStream?.use {
+                                        openCapturePreview(
+                                            ByteArrayInputStream(
+                                                event.photoOutputStream.toByteArray()
+                                            )
                                         )
-                                    )
+                                    }
+                                    else -> openCapturePreview(ByteArrayInputStream(bytes))
                                 }
                             }
                         }
