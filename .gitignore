@@ -7,5 +7,5 @@
 /captures
 .externalNativeBuild
 .cxx
-.kotlin
-.vscode
+/.kotlin
+/.vscode
