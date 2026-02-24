@@ -9,6 +9,7 @@ import android.animation.ValueAnimator
 import android.app.Application
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Color
 import android.graphics.ImageFormat
 import android.location.LocationManager
 import android.net.Uri
@@ -336,7 +337,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
         }
         .flowOn(Dispatchers.IO)
         .stateIn(
-            viewModelScope,
+            scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = setOf()
         )
@@ -956,7 +957,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
                     preferencesRepository.colorCorrectionAberrationMode,
                     preferencesRepository.distortionCorrectionMode,
                     preferencesRepository.hotPixelMode,
-                ) { }.drop(1).collectLatest {
+                ) { }.collectLatest {
                     updateConfiguration<CameraConfiguration> { cameraConfiguration ->
                         createInitialCameraConfiguration(
                             camera = cameraConfiguration.camera,
@@ -1110,11 +1111,23 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
                     // Normal camera: photo saved to URI → watermark file then broadcast + emit
                     watermarkEnabled && output.savedUri != null -> {
                         viewModelScope.launch {
-                            WatermarkUtils.applyWatermarkToUri(
+                             WatermarkUtils.applyWatermarkToUri(
                                 output.savedUri!!,
                                 timestamp,
                                 applicationContext.contentResolver,
+                                applicationContext,
                                 location.value,
+                                watermarkManualControl = preferencesRepository.watermarkManualControl.value,
+                                watermarkCustomText = preferencesRepository.watermarkCustomText.value,
+                                watermarkShowDate = preferencesRepository.watermarkShowDate.value,
+                                watermarkShowTime = preferencesRepository.watermarkShowTime.value,
+                                watermarkShowLocation = preferencesRepository.watermarkShowLocation.value,
+                                watermarkShowAddress = preferencesRepository.watermarkShowAddress.value,
+                                watermarkShowDeviceName = preferencesRepository.watermarkShowDeviceName.value,
+                                watermarkShowBackground = preferencesRepository.watermarkShowBackground.value,
+                                watermarkTextSize = preferencesRepository.watermarkTextSize.value.toFloatOrNull() ?: 0.028f,
+                                watermarkTextColor = try { Color.parseColor(preferencesRepository.watermarkTextColor.value) } catch (e: Exception) { Color.WHITE },
+                                watermarkFont = preferencesRepository.watermarkFont.value,
                             )
                             withContext(Dispatchers.Main) {
                                 if (!inSingleCaptureMode.value) {
@@ -1135,9 +1148,21 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
                         viewModelScope.launch {
                             val watermarkedBytes = withContext(Dispatchers.IO) {
                                 WatermarkUtils.applyWatermarkToJpegBytes(
+                                    applicationContext,
                                     stream.toByteArray(),
                                     timestamp,
                                     location.value,
+                                    watermarkManualControl = preferencesRepository.watermarkManualControl.value,
+                                    watermarkCustomText = preferencesRepository.watermarkCustomText.value,
+                                    watermarkShowDate = preferencesRepository.watermarkShowDate.value,
+                                    watermarkShowTime = preferencesRepository.watermarkShowTime.value,
+                                    watermarkShowLocation = preferencesRepository.watermarkShowLocation.value,
+                                    watermarkShowAddress = preferencesRepository.watermarkShowAddress.value,
+                                    watermarkShowDeviceName = preferencesRepository.watermarkShowDeviceName.value,
+                                    watermarkShowBackground = preferencesRepository.watermarkShowBackground.value,
+                                    watermarkTextSize = preferencesRepository.watermarkTextSize.value.toFloatOrNull() ?: 0.028f,
+                                    watermarkTextColor = try { Color.parseColor(preferencesRepository.watermarkTextColor.value) } catch (e: Exception) { Color.WHITE },
+                                    watermarkFont = preferencesRepository.watermarkFont.value,
                                 )
                             }
                             withContext(Dispatchers.Main) {
@@ -1900,9 +1925,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
         }
 
         return try {
-            val currentCameraConfiguration = _cameraConfiguration.value ?: error(
-                "Camera configuration is null"
-            )
+            val currentCameraConfiguration = _cameraConfiguration.value ?: return false
 
             T::class.safeCast(currentCameraConfiguration)?.let {
                 val newCameraConfiguration = block(it)

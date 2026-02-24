@@ -5,12 +5,17 @@
 
 package org.lineageos.aperture.utils
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.Typeface
+import android.location.Geocoder
 import android.location.Location
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.exifinterface.media.ExifInterface
 import kotlinx.coroutines.Dispatchers
@@ -29,100 +34,165 @@ private val TIME_FORMAT = SimpleDateFormat("HH:mm", Locale("id"))
 private val DATE_FORMAT = SimpleDateFormat("d MMMM yyyy", Locale("id"))
 
 object WatermarkUtils {
+    private const val PADDING_FRACTION = 0.035f
 
-    /**
-     * Fraction of the shorter side of the image used for text size (proportional, kept smaller).
-     */
-    private const val TEXT_SIZE_FRACTION = 0.018f
-
-    /**
-     * Padding from edges as fraction of the shorter side (proportional, not too close).
-     */
-    private const val PADDING_FRACTION = 0.032f
-
-    /**
-     * Draws a timestamp and optional coordinates at the bottom-right. Line 1: jam | tanggal.
-     * Line 2 (if location present): koordinat angka saja (e.g. -6.21, 106.85).
-     */
     fun drawWatermark(
         bitmap: Bitmap,
         timestampMillis: Long,
         location: Location? = null,
+        watermarkManualControl: Boolean,
+        watermarkCustomText: String,
+        watermarkShowDate: Boolean,
+        watermarkShowTime: Boolean,
+        watermarkShowLocation: Boolean,
+        watermarkShowAddress: Boolean,
+        watermarkShowDeviceName: Boolean,
+        watermarkShowBackground: Boolean,
+        watermarkTextSize: Float,
+        watermarkTextColor: Int,
+        watermarkFont: String,
+        address: String?,
     ): Bitmap {
         val shortSide = minOf(bitmap.width, bitmap.height)
-        val textSizePx = (shortSide * TEXT_SIZE_FRACTION).toInt().coerceAtLeast(10)
-        val paddingPx = (shortSide * PADDING_FRACTION).toInt().coerceAtLeast(6)
-        val lineSpacing = (textSizePx * 0.4f).toInt().coerceAtLeast(2)
+
+        val textSizePx = shortSide * watermarkTextSize
+        val paddingPx = (shortSide * PADDING_FRACTION).toInt()
+        val lineSpacing = (textSizePx * 0.3f).toInt()
 
         val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true) ?: return bitmap
         val canvas = Canvas(mutableBitmap)
 
         val timeStr = TIME_FORMAT.format(timestampMillis)
         val dateStr = DATE_FORMAT.format(timestampMillis)
-        val line1 = "$timeStr | $dateStr"
-        val line2 = location?.let {
+
+        // Right side: Date/Time (Top), Coordinates (Bottom)
+        val lineRight1 = when {
+            watermarkShowDate && watermarkShowTime -> "$timeStr | $dateStr"
+            watermarkShowDate -> dateStr
+            watermarkShowTime -> timeStr
+            else -> null
+        }
+        val lineRight2 = if (watermarkShowLocation) location?.let {
             String.format(Locale.US, "%.5f, %.5f", it.latitude, it.longitude)
+        } else null
+
+        // Left side: Device Name (Top), Address (Bottom)
+        val deviceName = watermarkCustomText.ifEmpty { Build.MODEL }
+        val lineLeft1 = if (watermarkShowDeviceName) deviceName else null
+        val lineLeft2 = if (watermarkShowAddress) address else null
+
+        val typeface = try {
+            Typeface.create(watermarkFont, Typeface.BOLD)
+        } catch (e: Exception) {
+            Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
 
-        val typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        val textSize = textSizePx.toFloat()
-        val paintMeasure = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.textSize = textSize
-            this.typeface = typeface
-        }
-        val textHeight = paintMeasure.fontMetrics.descent - paintMeasure.fontMetrics.ascent
-        val xRight = mutableBitmap.width - paddingPx
-        val x1 = xRight - paintMeasure.measureText(line1)
-        val x2 = line2?.let { xRight - paintMeasure.measureText(it) }
-        val yBase = mutableBitmap.height - paddingPx - paintMeasure.fontMetrics.descent
-        val y1 = yBase
-        val y2 = line2?.let { yBase - textHeight - lineSpacing }
-
-        // Teks putih + outline tipis biar terbaca di background terang/gelap (seperti watermark HP bawaan)
-        val strokeWidthPx = (textSizePx * 0.08f).coerceIn(1f, 3f)
         val paintFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.textSize = textSize
+            this.textSize = textSizePx
             this.typeface = typeface
-            color = 0xFFFFFFFF.toInt()
+            color = watermarkTextColor
             style = Paint.Style.FILL
         }
         val paintStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.textSize = textSize
+            this.textSize = textSizePx
             this.typeface = typeface
-            color = 0xFF000000.toInt()
+            color = Color.BLACK
             style = Paint.Style.STROKE
-            strokeWidth = strokeWidthPx
+            strokeWidth = (textSizePx * 0.1f).coerceIn(1f, 3f)
         }
-        canvas.drawText(line1, x1, y1, paintStroke)
-        canvas.drawText(line1, x1, y1, paintFill)
-        if (line2 != null && x2 != null && y2 != null) {
-            canvas.drawText(line2, x2, y2, paintStroke)
-            canvas.drawText(line2, x2, y2, paintFill)
+
+        val fontMetrics = paintFill.fontMetrics
+        val textHeight = fontMetrics.descent - fontMetrics.ascent
+
+        // Y positions: Baris 2 di paling bawah, Baris 1 di atasnya
+        val yBase2 = mutableBitmap.height - paddingPx - fontMetrics.descent
+        val yBase1 = if (lineRight2 != null || lineLeft2 != null) yBase2 - textHeight - lineSpacing else yBase2
+
+        // Draw Background
+        if (watermarkShowBackground) {
+            if (lineLeft1 != null || lineLeft2 != null || lineRight1 != null || lineRight2 != null) {
+                val bgPaint = Paint().apply { color = Color.argb(120, 0, 0, 0) }
+
+                val top = yBase1 + fontMetrics.ascent - paddingPx / 4
+                val bottom = yBase2 + fontMetrics.descent + paddingPx / 4
+
+                val rect = Rect(0, top.toInt(), mutableBitmap.width, bottom.toInt())
+                canvas.drawRect(rect, bgPaint)
+            }
+        }
+
+        // Draw Right Watermark
+        val xRight = mutableBitmap.width - paddingPx
+        lineRight1?.let {
+            canvas.drawText(it, xRight - paintFill.measureText(it), yBase1, paintStroke)
+            canvas.drawText(it, xRight - paintFill.measureText(it), yBase1, paintFill)
+        }
+        lineRight2?.let {
+            canvas.drawText(it, xRight - paintFill.measureText(it), yBase2, paintStroke)
+            canvas.drawText(it, xRight - paintFill.measureText(it), yBase2, paintFill)
+        }
+
+        // Draw Left Watermark
+        val xLeft = paddingPx.toFloat()
+        lineLeft1?.let {
+            canvas.drawText(it, xLeft, yBase1, paintStroke)
+            canvas.drawText(it, xLeft, yBase1, paintFill)
+        }
+        lineLeft2?.let {
+            canvas.drawText(it, xLeft, yBase2, paintStroke)
+            canvas.drawText(it, xLeft, yBase2, paintFill)
         }
 
         return mutableBitmap
     }
 
+    private fun getAddressFromLocation(context: Context, location: Location?): String? {
+        if (location == null) return null
+        return try {
+            val geocoder = Geocoder(context, Locale.getDefault())
+            @Suppress("DEPRECATION")
+            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+            val address = addresses?.firstOrNull() ?: return null
+            
+            val street = address.thoroughfare // Nama Jalan
+            val houseNumber = address.subThoroughfare // Nomor Rumah/Gedung
+            
+            if (street != null) {
+                if (houseNumber != null) "$street No. $houseNumber" else street
+            } else {
+                // Jika jalan tidak ditemukan, ambil area yang lebih kecil agar tetap pendek
+                address.subLocality ?: address.locality ?: address.getAddressLine(0).take(30)
+            }
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Failed to get address from location", e)
+            null
+        }
+    }
+
     /**
      * Applies timestamp and optional location watermark to JPEG bytes.
-     * Preserves EXIF orientation. Call from IO dispatcher.
-     *
-     * @return Watermarked JPEG bytes, or null on failure.
      */
     fun applyWatermarkToJpegBytes(
+        context: Context,
         jpegBytes: ByteArray,
         timestampMillis: Long,
         location: Location? = null,
+        watermarkManualControl: Boolean = false,
+        watermarkCustomText: String = "",
+        watermarkShowDate: Boolean = true,
+        watermarkShowTime: Boolean = true,
+        watermarkShowLocation: Boolean = true,
+        watermarkShowAddress: Boolean = false,
+        watermarkShowDeviceName: Boolean = true,
+        watermarkShowBackground: Boolean = false,
+        watermarkTextSize: Float = 0.028f,
+        watermarkTextColor: Int = Color.WHITE,
+        watermarkFont: String = "sans-serif",
     ): ByteArray? {
         return try {
             val exif = ExifInterface(ByteArrayInputStream(jpegBytes))
-            val orientation = exif.getAttributeInt(
-                ExifInterface.TAG_ORIENTATION,
-                ExifInterface.ORIENTATION_UNDEFINED
-            )
-            val bitmap = android.graphics.BitmapFactory.decodeByteArray(
-                jpegBytes, 0, jpegBytes.size
-            ) ?: return null
+            val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
+            val bitmap = android.graphics.BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.size) ?: return null
             val rotated = when (orientation) {
                 ExifInterface.ORIENTATION_ROTATE_90 -> rotateBitmap(bitmap, 90)
                 ExifInterface.ORIENTATION_ROTATE_180 -> rotateBitmap(bitmap, 180)
@@ -130,7 +200,15 @@ object WatermarkUtils {
                 else -> bitmap
             }
             if (rotated != bitmap) bitmap.recycle()
-            val watermarked = drawWatermark(rotated, timestampMillis, location)
+
+            val address = if (watermarkShowAddress) getAddressFromLocation(context, location) else null
+
+            val watermarked = drawWatermark(
+                rotated, timestampMillis, location, watermarkManualControl,
+                watermarkCustomText, watermarkShowDate, watermarkShowTime, watermarkShowLocation,
+                watermarkShowAddress, watermarkShowDeviceName, watermarkShowBackground,
+                watermarkTextSize, watermarkTextColor, watermarkFont, address
+            )
             if (watermarked != rotated) rotated.recycle()
             ByteArrayOutputStream().use { out ->
                 watermarked.compress(Bitmap.CompressFormat.JPEG, 95, out)
@@ -144,25 +222,34 @@ object WatermarkUtils {
     }
 
     /**
-     * Loads an image from [uri], draws the timestamp and optional location watermark,
-     * and writes the result back. Runs on IO dispatcher. Preserves EXIF orientation.
-     *
-     * @return true if watermark was applied and written successfully, false otherwise.
+     * Loads an image from [uri] and applies watermark.
      */
     suspend fun applyWatermarkToUri(
         uri: Uri,
         timestampMillis: Long,
         contentResolver: android.content.ContentResolver,
+        context: Context,
         location: Location? = null,
+        watermarkManualControl: Boolean = false,
+        watermarkCustomText: String = "",
+        watermarkShowDate: Boolean = true,
+        watermarkShowTime: Boolean = true,
+        watermarkShowLocation: Boolean = true,
+        watermarkShowAddress: Boolean = false,
+        watermarkShowDeviceName: Boolean = true,
+        watermarkShowBackground: Boolean = false,
+        watermarkTextSize: Float = 0.028f,
+        watermarkTextColor: Int = Color.WHITE,
+        watermarkFont: String = "sans-serif",
     ): Boolean = withContext(Dispatchers.IO) {
+        val address = if (watermarkShowAddress) getAddressFromLocation(context, location) else null
+
         try {
             contentResolver.openInputStream(uri)?.use { input ->
                 val bytes = input.readBytes()
                 val exif = ExifInterface(ByteArrayInputStream(bytes))
                 val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
-
-                val bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    ?: return@withContext false
+                val bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@withContext false
                 val rotated = when (orientation) {
                     ExifInterface.ORIENTATION_ROTATE_90 -> rotateBitmap(bitmap, 90)
                     ExifInterface.ORIENTATION_ROTATE_180 -> rotateBitmap(bitmap, 180)
@@ -170,14 +257,16 @@ object WatermarkUtils {
                     else -> bitmap
                 }
                 if (rotated != bitmap) bitmap.recycle()
-
-                val watermarked = drawWatermark(rotated, timestampMillis, location)
+                val watermarked = drawWatermark(
+                    rotated, timestampMillis, location, watermarkManualControl,
+                    watermarkCustomText, watermarkShowDate, watermarkShowTime, watermarkShowLocation,
+                    watermarkShowAddress, watermarkShowDeviceName, watermarkShowBackground,
+                    watermarkTextSize, watermarkTextColor, watermarkFont, address
+                )
                 if (watermarked != rotated) rotated.recycle()
-
                 val outputStream = ByteArrayOutputStream()
                 watermarked.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
                 watermarked.recycle()
-
                 contentResolver.openOutputStream(uri, "wt")?.use { out ->
                     out.write(outputStream.toByteArray())
                 } ?: return@withContext false
@@ -191,8 +280,6 @@ object WatermarkUtils {
 
     private fun rotateBitmap(bitmap: Bitmap, degrees: Int): Bitmap {
         val matrix = android.graphics.Matrix().apply { postRotate(degrees.toFloat()) }
-        return Bitmap.createBitmap(
-            bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
-        )
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 }

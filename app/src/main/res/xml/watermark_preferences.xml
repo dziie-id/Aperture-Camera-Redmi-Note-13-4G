@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: 2025 The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/watermark_settings_title">
+
+        <SwitchPreference
+            app:defaultValue="false"
+            app:iconSpaceReserved="false"
+            app:key="watermark_manual_control"
+            app:summary="@string/watermark_manual_control_summary"
+            app:title="@string/watermark_manual_control_title" />
+
+        <EditTextPreference
+            app:dependency="watermark_manual_control"
+            app:iconSpaceReserved="false"
+            app:key="watermark_custom_text"
+            app:summary="@string/watermark_custom_text_summary"
+            app:title="@string/watermark_custom_text_title" />
+
+        <SwitchPreference
+            app:dependency="watermark_manual_control"
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="watermark_show_date"
+            app:title="@string/watermark_show_date_title" />
+
+        <SwitchPreference
+            app:dependency="watermark_manual_control"
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="watermark_show_time"
+            app:title="@string/watermark_show_time_title" />
+
+        <SwitchPreference
+            app:dependency="watermark_manual_control"
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="watermark_show_location"
+            app:title="@string/watermark_show_location_title" />
+
+        <SwitchPreference
+            app:dependency="watermark_manual_control"
+            app:defaultValue="false"
+            app:iconSpaceReserved="false"
+            app:key="watermark_show_address"
+            app:title="@string/watermark_show_address_title" />
+
+        <SwitchPreference
+            app:dependency="watermark_manual_control"
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="watermark_show_device_name"
+            app:title="@string/watermark_show_device_name_title" />
+
+        <SwitchPreference
+            app:dependency="watermark_manual_control"
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="watermark_show_background"
+            app:title="@string/watermark_show_background_title" />
+
+        <ListPreference
+            app:dependency="watermark_manual_control"
+            app:defaultValue="0.028"
+            app:entries="@array/watermark_text_size_entries"
+            app:entryValues="@array/watermark_text_size_values"
+            app:iconSpaceReserved="false"
+            app:key="watermark_text_size"
+            app:title="@string/watermark_text_size_title" />
+
+        <ListPreference
+            app:dependency="watermark_manual_control"
+            app:defaultValue="#FFFFFFFF"
+            app:entries="@array/watermark_text_color_entries"
+            app:entryValues="@array/watermark_text_color_values"
+            app:iconSpaceReserved="false"
+            app:key="watermark_text_color"
+            app:title="@string/watermark_text_color_title" />
+
+        <ListPreference
+            app:dependency="watermark_manual_control"
+            app:defaultValue="sans-serif"
+            app:entries="@array/watermark_font_entries"
+            app:entryValues="@array/watermark_font_values"
+            app:iconSpaceReserved="false"
+            app:key="watermark_font"
+            app:title="@string/watermark_font_title" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

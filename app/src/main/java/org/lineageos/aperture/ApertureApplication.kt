@@ -7,6 +7,7 @@ package org.lineageos.aperture
 
 import android.annotation.SuppressLint
 import android.app.Application
+import android.util.Log
 import androidx.camera.camera2.internal.CameraIdUtil
 import com.google.android.material.color.DynamicColors
 import kotlinx.coroutines.MainScope
@@ -27,6 +28,8 @@ class ApertureApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        Log.d(LOG_TAG, "ApertureApplication created")
+
         // Observe dynamic colors changes
         DynamicColors.applyToActivitiesIfAvailable(this)
 
@@ -34,5 +37,9 @@ class ApertureApplication : Application() {
         CameraIdUtil.setBackwardCompatibleCameraIds(
             overlaysRepository.backwardCompatibleCameraIds.asList()
         )
+    }
+
+    companion object {
+        private val LOG_TAG = ApertureApplication::class.simpleName!!
     }
 }

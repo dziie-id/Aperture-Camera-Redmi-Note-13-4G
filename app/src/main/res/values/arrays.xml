@@ -187,4 +187,47 @@
         <item>on</item>
         <item>on_ffc_only</item>
     </string-array>
+
+    <!-- Watermark text size preference -->
+    <string-array name="watermark_text_size_entries" translatable="false">
+        <item>Small</item>
+        <item>Normal</item>
+        <item>Large</item>
+        <item>Extra Large</item>
+    </string-array>
+
+    <string-array name="watermark_text_size_values" translatable="false">
+        <item>0.02</item>
+        <item>0.028</item>
+        <item>0.04</item>
+        <item>0.06</item>
+    </string-array>
+
+    <!-- Watermark text color preference -->
+    <string-array name="watermark_text_color_entries" translatable="false">
+        <item>White</item>
+        <item>Black</item>
+        <item>Red</item>
+        <item>Yellow</item>
+    </string-array>
+
+    <string-array name="watermark_text_color_values" translatable="false">
+        <item>#FFFFFFFF</item>
+        <item>#FF000000</item>
+        <item>#FFFF0000</item>
+        <item>#FFFFFF00</item>
+    </string-array>
+
+    <!-- Watermark font preference -->
+    <string-array name="watermark_font_entries" translatable="false">
+        <item>Default</item>
+        <item>Serif</item>
+        <item>Monospace</item>
+    </string-array>
+
+    <string-array name="watermark_font_values" translatable="false">
+        <item>sans-serif</item>
+        <item>serif</item>
+        <item>monospace</item>
+    </string-array>
 </resources>

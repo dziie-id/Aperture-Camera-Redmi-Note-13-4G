@@ -180,6 +180,94 @@ class PreferencesRepository(
     ).asPreferenceHolder()
 
     /**
+     * Whether manual control for watermark is enabled.
+     */
+    val watermarkManualControl = primitivePreference(
+        key = "watermark_manual_control",
+        defaultValue = false,
+    ).asPreferenceHolder()
+
+    /**
+     * Custom text for watermark.
+     */
+    val watermarkCustomText = primitivePreference(
+        key = "watermark_custom_text",
+        defaultValue = "",
+    ).asPreferenceHolder()
+
+    /**
+     * Whether to show date in watermark.
+     */
+    val watermarkShowDate = primitivePreference(
+        key = "watermark_show_date",
+        defaultValue = true,
+    ).asPreferenceHolder()
+
+    /**
+     * Whether to show time in watermark.
+     */
+    val watermarkShowTime = primitivePreference(
+        key = "watermark_show_time",
+        defaultValue = true,
+    ).asPreferenceHolder()
+
+    /**
+     * Whether to show location in watermark.
+     */
+    val watermarkShowLocation = primitivePreference(
+        key = "watermark_show_location",
+        defaultValue = true,
+    ).asPreferenceHolder()
+
+    /**
+     * Whether to show address in watermark.
+     */
+    val watermarkShowAddress = primitivePreference(
+        key = "watermark_show_address",
+        defaultValue = false,
+    ).asPreferenceHolder()
+
+    /**
+     * Whether to show device name in watermark.
+     */
+    val watermarkShowDeviceName = primitivePreference(
+        key = "watermark_show_device_name",
+        defaultValue = true,
+    ).asPreferenceHolder()
+
+    /**
+     * Whether to show background in watermark.
+     */
+    val watermarkShowBackground = primitivePreference(
+        key = "watermark_show_background",
+        defaultValue = true,
+    ).asPreferenceHolder()
+
+    /**
+     * Watermark text size fraction.
+     */
+    val watermarkTextSize = primitivePreference(
+        key = "watermark_text_size",
+        defaultValue = "0.028",
+    ).asPreferenceHolder()
+
+    /**
+     * Watermark text color.
+     */
+    val watermarkTextColor = primitivePreference(
+        key = "watermark_text_color",
+        defaultValue = "#FFFFFFFF",
+    ).asPreferenceHolder()
+
+    /**
+     * Watermark font.
+     */
+    val watermarkFont = primitivePreference(
+        key = "watermark_font",
+        defaultValue = "sans-serif",
+    ).asPreferenceHolder()
+
+    /**
      * Desired [FlashMode] for photos.
      */
     val photoFlashMode = enumPreference(

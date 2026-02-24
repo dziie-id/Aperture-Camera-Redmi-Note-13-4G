@@ -145,7 +145,23 @@
     <string name="photo_ffc_mirror_title">Mirror front camera</string>
     <string name="photo_ffc_mirror_summary">Save front camera photos as they appear in the preview</string>
     <string name="photo_watermark_title">Photo watermark</string>
-    <string name="photo_watermark_summary">Add date and time at the bottom of each photo (e.g. 20:39 | February 23, 2026)</string>
+    <string name="photo_watermark_summary">Add watermark to photos</string>
+
+    <!-- Watermark Preferences -->
+    <string name="watermark_settings_title">Watermark settings</string>
+    <string name="watermark_custom_text_title">Custom text / Device name</string>
+    <string name="watermark_custom_text_summary">Add custom text to the bottom left (defaults to device model)</string>
+    <string name="watermark_show_date_title">Show date</string>
+    <string name="watermark_show_time_title">Show time</string>
+    <string name="watermark_show_location_title">Show coordinates</string>
+    <string name="watermark_show_address_title">Show address</string>
+    <string name="watermark_show_device_name_title">Show device name</string>
+    <string name="watermark_show_background_title">Show background</string>
+    <string name="watermark_text_size_title">Text size</string>
+    <string name="watermark_text_color_title">Text color</string>
+    <string name="watermark_font_title">Font style</string>
+    <string name="watermark_manual_control_title">Manual watermark control</string>
+    <string name="watermark_manual_control_summary">Enable advanced watermark customization</string>
 
     <!-- Video Preferences -->
     <string name="video_stabilization_title">Enable video stabilization</string>

@@ -376,6 +376,8 @@ class SettingsActivity : AppCompatActivity(R.layout.activity_settings) {
 
     class ProcessingSettingsFragment : SettingsFragment(R.xml.processing_preferences)
 
+    class WatermarkSettingsFragment : SettingsFragment(R.xml.watermark_preferences)
+
     companion object {
         private val LOG_TAG = SettingsActivity::class.simpleName!!
     }
