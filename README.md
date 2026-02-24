@@ -1,2 +1,3 @@
 - Enable Aux
 - Remove Thermal Throtle
+- Enable Advanced Watermark
