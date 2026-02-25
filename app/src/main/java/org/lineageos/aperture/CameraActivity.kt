@@ -5,8 +5,6 @@
 
 package org.lineageos.aperture
 
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import android.animation.ValueAnimator
 import android.app.KeyguardManager
 import android.content.ClipData
@@ -17,6 +15,7 @@ import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.drawable.AnimatedVectorDrawable
 import android.graphics.drawable.ColorDrawable
+import android.hardware.camera2.CaptureRequest
 import android.icu.text.DecimalFormat
 import android.net.Uri
 import android.os.Build
@@ -77,6 +76,7 @@ import coil3.video.VideoFrameDecoder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.guava.await
@@ -816,7 +816,7 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
 
                         CameraXCameraState.ERROR_CAMERA_DISABLED -> {
                             // No way to fix it without user action, bail out
-                            showToast(R.string.error_camera_disabled)
+                            showToast(R.drawable.ic_lock)
                             finish()
                         }
 
@@ -1619,7 +1619,7 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
             delay(600)
             
             viewModel.cameraController.bindToLifecycle(this@CameraActivity)
-            
+
             viewModel.cameraController.initializationFuture.await()
 
             val camera2CameraControl = viewModel.cameraController.camera2CameraControl ?: run {
@@ -1655,6 +1655,11 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
                 .setColorCorrectionAberrationMode(camera2Options.colorCorrectionAberrationMode)
                 .setDistortionCorrectionMode(camera2Options.distortionCorrectionMode)
                 .setHotPixelMode(camera2Options.hotPixelMode)
+                .apply {
+                    camera2Options.sceneMode?.let {
+                        setCaptureRequestOption(CaptureRequest.CONTROL_SCENE_MODE, it)
+                    }
+                }
                 .build()
         }
 

@@ -1103,8 +1103,8 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
                     return
                 }
 
-                // Watermark when toggle is on (Settings → Photo watermark). Only for photo mode (JPEG).
-                val watermarkEnabled = preferencesRepository.photoWatermark.value &&
+                // Watermark when toggle is on (Manual watermark control). Only for photo mode (JPEG).
+                val watermarkEnabled = preferencesRepository.watermarkManualControl.value &&
                     imageOutputFormat != ImageCapture.OUTPUT_FORMAT_RAW
 
                 when {
@@ -1875,6 +1875,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
                 else -> true
             }
         },
+        sceneMode = null,
     )
 
     @androidx.annotation.OptIn(ExperimentalZeroShutterLag::class)
@@ -1905,6 +1906,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
             camera.supportedHotPixelModes.contains(it)
                     && HotPixelMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
         },
+        sceneMode = null,
     )
 
     /**

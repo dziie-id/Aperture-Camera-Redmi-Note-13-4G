@@ -104,16 +104,20 @@ object WatermarkUtils {
         val fontMetrics = paintFill.fontMetrics
         val textHeight = fontMetrics.descent - fontMetrics.ascent
 
-        // Y positions: Baris 2 di paling bawah, Baris 1 di atasnya
+        // Y positions logic: Dynamic per side
         val yBase2 = mutableBitmap.height - paddingPx - fontMetrics.descent
-        val yBase1 = if (lineRight2 != null || lineLeft2 != null) yBase2 - textHeight - lineSpacing else yBase2
+        val yTopIfTwoLines = yBase2 - textHeight - lineSpacing
 
         // Draw Background
         if (watermarkShowBackground) {
-            if (lineLeft1 != null || lineLeft2 != null || lineRight1 != null || lineRight2 != null) {
+            val hasAnyText = lineLeft1 != null || lineLeft2 != null || lineRight1 != null || lineRight2 != null
+            if (hasAnyText) {
                 val bgPaint = Paint().apply { color = Color.argb(120, 0, 0, 0) }
-
-                val top = yBase1 + fontMetrics.ascent - paddingPx / 4
+                
+                // Determine if we need background for 1 or 2 lines based on the side with most lines
+                val maxLines = if (lineLeft2 != null || lineRight2 != null) 2 else 1
+                val top = if (maxLines == 2) yTopIfTwoLines + fontMetrics.ascent - paddingPx / 4
+                          else yBase2 + fontMetrics.ascent - paddingPx / 4
                 val bottom = yBase2 + fontMetrics.descent + paddingPx / 4
 
                 val rect = Rect(0, top.toInt(), mutableBitmap.width, bottom.toInt())
@@ -123,9 +127,10 @@ object WatermarkUtils {
 
         // Draw Right Watermark
         val xRight = mutableBitmap.width - paddingPx
+        val yRight = if (lineRight2 != null) yTopIfTwoLines else yBase2
         lineRight1?.let {
-            canvas.drawText(it, xRight - paintFill.measureText(it), yBase1, paintStroke)
-            canvas.drawText(it, xRight - paintFill.measureText(it), yBase1, paintFill)
+            canvas.drawText(it, xRight - paintFill.measureText(it), yRight, paintStroke)
+            canvas.drawText(it, xRight - paintFill.measureText(it), yRight, paintFill)
         }
         lineRight2?.let {
             canvas.drawText(it, xRight - paintFill.measureText(it), yBase2, paintStroke)
@@ -134,9 +139,10 @@ object WatermarkUtils {
 
         // Draw Left Watermark
         val xLeft = paddingPx.toFloat()
+        val yLeft = if (lineLeft2 != null) yTopIfTwoLines else yBase2
         lineLeft1?.let {
-            canvas.drawText(it, xLeft, yBase1, paintStroke)
-            canvas.drawText(it, xLeft, yBase1, paintFill)
+            canvas.drawText(it, xLeft, yLeft, paintStroke)
+            canvas.drawText(it, xLeft, yLeft, paintFill)
         }
         lineLeft2?.let {
             canvas.drawText(it, xLeft, yBase2, paintStroke)
@@ -213,7 +219,35 @@ object WatermarkUtils {
             ByteArrayOutputStream().use { out ->
                 watermarked.compress(Bitmap.CompressFormat.JPEG, 95, out)
                 watermarked.recycle()
-                out.toByteArray()
+                
+                // Copy EXIF from original bytes to watermarked bytes
+                val watermarkedBytes = out.toByteArray()
+                val newExif = ExifInterface(ByteArrayInputStream(watermarkedBytes))
+                
+                // Copy relevant attributes
+                val tags = arrayOf(
+                    ExifInterface.TAG_MAKE,
+                    ExifInterface.TAG_MODEL,
+                    ExifInterface.TAG_DATETIME,
+                    ExifInterface.TAG_FLASH,
+                    ExifInterface.TAG_FOCAL_LENGTH,
+                    ExifInterface.TAG_GPS_LATITUDE,
+                    ExifInterface.TAG_GPS_LONGITUDE,
+                    ExifInterface.TAG_GPS_LATITUDE_REF,
+                    ExifInterface.TAG_GPS_LONGITUDE_REF,
+                    ExifInterface.TAG_EXPOSURE_TIME,
+                    ExifInterface.TAG_F_NUMBER,
+                    ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
+                    ExifInterface.TAG_WHITE_BALANCE
+                )
+                
+                for (tag in tags) {
+                    exif.getAttribute(tag)?.let { value ->
+                        newExif.setAttribute(tag, value)
+                    }
+                }
+                
+                watermarkedBytes
             }
         } catch (e: Exception) {
             Log.e(LOG_TAG, "Failed to apply watermark to bytes", e)
@@ -248,8 +282,9 @@ object WatermarkUtils {
             contentResolver.openInputStream(uri)?.use { input ->
                 val bytes = input.readBytes()
                 val exif = ExifInterface(ByteArrayInputStream(bytes))
-                val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
+                
                 val bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@withContext false
+                val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
                 val rotated = when (orientation) {
                     ExifInterface.ORIENTATION_ROTATE_90 -> rotateBitmap(bitmap, 90)
                     ExifInterface.ORIENTATION_ROTATE_180 -> rotateBitmap(bitmap, 180)
@@ -257,6 +292,7 @@ object WatermarkUtils {
                     else -> bitmap
                 }
                 if (rotated != bitmap) bitmap.recycle()
+                
                 val watermarked = drawWatermark(
                     rotated, timestampMillis, location, watermarkManualControl,
                     watermarkCustomText, watermarkShowDate, watermarkShowTime, watermarkShowLocation,
@@ -264,12 +300,50 @@ object WatermarkUtils {
                     watermarkTextSize, watermarkTextColor, watermarkFont, address
                 )
                 if (watermarked != rotated) rotated.recycle()
+                
                 val outputStream = ByteArrayOutputStream()
                 watermarked.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
+                val watermarkedBytes = outputStream.toByteArray()
                 watermarked.recycle()
+                
+                // Write watermarked bytes back
                 contentResolver.openOutputStream(uri, "wt")?.use { out ->
-                    out.write(outputStream.toByteArray())
+                    out.write(watermarkedBytes)
                 } ?: return@withContext false
+                
+                // RE-APPLY EXIF after writing file
+                contentResolver.openFileDescriptor(uri, "rw")?.use { pfd ->
+                    val newExif = ExifInterface(pfd.fileDescriptor)
+                    
+                    val tags = arrayOf(
+                        ExifInterface.TAG_MAKE,
+                        ExifInterface.TAG_MODEL,
+                        ExifInterface.TAG_DATETIME,
+                        ExifInterface.TAG_FLASH,
+                        ExifInterface.TAG_FOCAL_LENGTH,
+                        ExifInterface.TAG_GPS_LATITUDE,
+                        ExifInterface.TAG_GPS_LONGITUDE,
+                        ExifInterface.TAG_GPS_LATITUDE_REF,
+                        ExifInterface.TAG_GPS_LONGITUDE_REF,
+                        ExifInterface.TAG_EXPOSURE_TIME,
+                        ExifInterface.TAG_F_NUMBER,
+                        ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
+                        ExifInterface.TAG_WHITE_BALANCE,
+                        ExifInterface.TAG_ORIENTATION // Set to normal as we already rotated the bitmap
+                    )
+                    
+                    for (tag in tags) {
+                        if (tag == ExifInterface.TAG_ORIENTATION) {
+                            newExif.setAttribute(tag, ExifInterface.ORIENTATION_NORMAL.toString())
+                        } else {
+                            exif.getAttribute(tag)?.let { value ->
+                                newExif.setAttribute(tag, value)
+                            }
+                        }
+                    }
+                    newExif.saveAttributes()
+                }
+
                 true
             } ?: false
         } catch (e: Exception) {

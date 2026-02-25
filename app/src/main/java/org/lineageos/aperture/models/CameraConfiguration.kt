@@ -23,6 +23,7 @@ sealed interface CameraConfiguration {
      * @param colorCorrectionAberrationMode The [ColorCorrectionAberrationMode] to use
      * @param distortionCorrectionMode The [DistortionCorrectionMode] to use
      * @param hotPixelMode The [HotPixelMode] to use
+     * @param sceneMode The Camera2 scene mode to use
      */
     data class Camera2Options(
         val edgeMode: EdgeMode?,
@@ -31,6 +32,7 @@ sealed interface CameraConfiguration {
         val colorCorrectionAberrationMode: ColorCorrectionAberrationMode?,
         val distortionCorrectionMode: DistortionCorrectionMode?,
         val hotPixelMode: HotPixelMode?,
+        val sceneMode: Int?,
     ) {
         companion object {
             /**
@@ -43,6 +45,7 @@ sealed interface CameraConfiguration {
                 colorCorrectionAberrationMode = null,
                 distortionCorrectionMode = null,
                 hotPixelMode = null,
+                sceneMode = null,
             )
         }
     }

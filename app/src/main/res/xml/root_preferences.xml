@@ -93,18 +93,11 @@
             app:summary="@string/photo_ffc_mirror_summary"
             app:title="@string/photo_ffc_mirror_title" />
 
-        <SwitchPreference
-            app:defaultValue="false"
-            app:iconSpaceReserved="false"
-            app:key="photo_watermark"
-            app:summary="@string/photo_watermark_summary"
-            app:title="@string/photo_watermark_title" />
-
         <Preference
-            app:dependency="photo_watermark"
             app:fragment="org.lineageos.aperture.SettingsActivity$WatermarkSettingsFragment"
             app:iconSpaceReserved="false"
-            app:title="@string/watermark_settings_title" />
+            app:summary="@string/photo_watermark_summary"
+            app:title="@string/photo_watermark_title" />
 
     </PreferenceCategory>
 
