@@ -259,6 +259,9 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
             super.handleMessage(msg)
             when (msg.what) {
                 MSG_HIDE_ZOOM_SLIDER -> {
+                    if (viewModel.cameraState.value.isRecordingVideo) {
+                        return
+                    }
                     zoomLevel.isVisible = false
                 }
 
@@ -457,9 +460,6 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
             return@setOnTouchListener gestureDetector.onTouchEvent(event)
         }
         viewFinder.setOnClickListener {
-            // Reset exposure level to 0 EV
-            viewModel.setExposureCompensationLevel(0.5f)
-
             exposureLevel.isVisible = true
             handler.removeMessages(MSG_HIDE_EXPOSURE_SLIDER)
             handler.sendMessageDelayed(handler.obtainMessage(MSG_HIDE_EXPOSURE_SLIDER), 2000)
@@ -883,6 +883,15 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
 
                 // Update camera mode selector
                 cameraModeSelectorLayout.setCameraState(cameraState)
+
+                // Keep zoom level visible while recording video
+                if (cameraState.isRecordingVideo) {
+                    zoomLevel.isVisible = true
+                    handler.removeMessages(MSG_HIDE_ZOOM_SLIDER)
+                } else if (cameraState == CameraState.IDLE && zoomLevel.isVisible) {
+                    handler.removeMessages(MSG_HIDE_ZOOM_SLIDER)
+                    handler.sendMessageDelayed(handler.obtainMessage(MSG_HIDE_ZOOM_SLIDER), 2000)
+                }
             }
         }
 
@@ -1094,8 +1103,10 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
                     zoomLevel.progress = it.linearZoom
                     zoomLevel.isVisible = true
 
-                    handler.removeMessages(MSG_HIDE_ZOOM_SLIDER)
-                    handler.sendMessageDelayed(handler.obtainMessage(MSG_HIDE_ZOOM_SLIDER), 2000)
+                    if (!viewModel.cameraState.value.isRecordingVideo) {
+                        handler.removeMessages(MSG_HIDE_ZOOM_SLIDER)
+                        handler.sendMessageDelayed(handler.obtainMessage(MSG_HIDE_ZOOM_SLIDER), 2000)
+                    }
 
                     lensSelectorLayout.onZoomRatioChanged(it.zoomRatio)
                 }
@@ -1617,7 +1628,7 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
         // Wait for camera to be ready
         lifecycleScope.launch {
             delay(600)
-            
+
             viewModel.cameraController.bindToLifecycle(this@CameraActivity)
 
             viewModel.cameraController.initializationFuture.await()
@@ -1665,9 +1676,6 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
 
         // Restore settings that can be set on the fly
         viewModel.setVideoMicrophoneEnabled(viewModel.videoMicMode.value)
-
-        // Reset exposure level
-        viewModel.setExposureCompensationLevel(0.5f)
     }
 
     private fun updateGalleryButton(uri: Uri?, fromCapture: Boolean) {
