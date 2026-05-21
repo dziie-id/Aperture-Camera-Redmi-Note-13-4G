@@ -1,0 +1,21 @@
+From 88b720d16b5e3fe8ce5f6e1133049fa8ee6af4aa Mon Sep 17 00:00:00 2001
+From: dziie-id <alfindp@gmail.com>
+Date: Mon, 2 Feb 2026 05:41:22 +0700
+Subject: [PATCH 03/19] Update .gitignore
+
+---
+ .gitignore | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/.gitignore b/.gitignore
+index 3c28f6b..0f1d137 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -7,5 +7,3 @@
+ /captures
+ .externalNativeBuild
+ .cxx
+-local.properties
+-/.idx
+--
+2.53.0

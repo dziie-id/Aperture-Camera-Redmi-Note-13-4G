@@ -1,0 +1,281 @@
+From 49aef505a0773108812a3cba0e1d7db573100aab Mon Sep 17 00:00:00 2001
+From: dziie-id <alfindp@gmail.com>
+Date: Wed, 25 Feb 2026 05:06:20 +0700
+Subject: [PATCH 16/19] fix: bersihin file sampah dari github
+
+---
+ .gitignore                                    |   2 +-
+ ...otlin-compiler-11500601377696592559.salive |   0
+ .vscode/launch.json                           |  25 ---
+ .vscode/settings.json                         |  11 -
+ gradlew                                       |   0
+ gradlew.bat                                   | 188 +++++++++---------
+ 6 files changed, 95 insertions(+), 131 deletions(-)
+ delete mode 100644 .kotlin/sessions/kotlin-compiler-11500601377696592559.salive
+ delete mode 100644 .vscode/launch.json
+ delete mode 100644 .vscode/settings.json
+ mode change 100755 => 100644 gradlew
+
+diff --git a/.gitignore b/.gitignore
+index f75000b..d6599c6 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -7,5 +7,5 @@
+ /captures
+ .externalNativeBuild
+ .cxx
+-/.kotlin
++.kotlin/
+ /.vscode
+\ No newline at end of file
+diff --git a/.kotlin/sessions/kotlin-compiler-11500601377696592559.salive b/.kotlin/sessions/kotlin-compiler-11500601377696592559.salive
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/.vscode/launch.json b/.vscode/launch.json
+deleted file mode 100644
+index 349abda..0000000
+--- a/.vscode/launch.json
++++ /dev/null
+@@ -1,25 +0,0 @@
+-{
+-    // Use IntelliSense to learn about possible attributes.
+-    // Hover to view descriptions of existing attributes.
+-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+-    "version": "0.2.0",
+-    "configurations": [
+-
+-        {
+-            "type": "android",
+-            "request": "launch",
+-            "name": "Android launch",
+-            "appSrcRoot": "${workspaceRoot}/app/src/main",
+-            "apkFile": "${workspaceRoot}/app/build/outputs/apk/debug/app-debug.apk",
+-            "adbPort": 5037
+-        },
+-        {
+-            "type": "android",
+-            "request": "attach",
+-            "name": "Android attach",
+-            "appSrcRoot": "${workspaceRoot}/app/src/main",
+-            "adbPort": 5037,
+-            "processId": "${command:PickAndroidProcess}"
+-        }
+-    ]
+-}
+\ No newline at end of file
+diff --git a/.vscode/settings.json b/.vscode/settings.json
+deleted file mode 100644
+index 897654c..0000000
+--- a/.vscode/settings.json
++++ /dev/null
+@@ -1,11 +0,0 @@
+-{
+-    "java.configuration.updateBuildConfiguration": "automatic",
+-    "terminal.integrated.fontSize": 10,
+-    "editor.fontSize": 10,
+-    "debug.console.fontSize": 10,
+-    "scm.inputFontSize": 10,
+-    "markdown.preview.fontSize": 10,
+-    "editor.formatOnPaste": true,
+-    "editor.formatOnSave": true,
+-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+-}
+\ No newline at end of file
+diff --git a/gradlew b/gradlew
+old mode 100755
+new mode 100644
+diff --git a/gradlew.bat b/gradlew.bat
+index 9b42019..9d21a21 100644
+--- a/gradlew.bat
++++ b/gradlew.bat
+@@ -1,94 +1,94 @@
+-@rem
+-@rem Copyright 2015 the original author or authors.
+-@rem
+-@rem Licensed under the Apache License, Version 2.0 (the "License");
+-@rem you may not use this file except in compliance with the License.
+-@rem You may obtain a copy of the License at
+-@rem
+-@rem      https://www.apache.org/licenses/LICENSE-2.0
+-@rem
+-@rem Unless required by applicable law or agreed to in writing, software
+-@rem distributed under the License is distributed on an "AS IS" BASIS,
+-@rem WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-@rem See the License for the specific language governing permissions and
+-@rem limitations under the License.
+-@rem
+-@rem SPDX-License-Identifier: Apache-2.0
+-@rem
+-
+-@if "%DEBUG%"=="" @echo off
+-@rem ##########################################################################
+-@rem
+-@rem  Gradle startup script for Windows
+-@rem
+-@rem ##########################################################################
+-
+-@rem Set local scope for the variables with windows NT shell
+-if "%OS%"=="Windows_NT" setlocal
+-
+-set DIRNAME=%~dp0
+-if "%DIRNAME%"=="" set DIRNAME=.
+-@rem This is normally unused
+-set APP_BASE_NAME=%~n0
+-set APP_HOME=%DIRNAME%
+-
+-@rem Resolve any "." and ".." in APP_HOME to make it shorter.
+-for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
+-
+-@rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
+-set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
+-
+-@rem Find java.exe
+-if defined JAVA_HOME goto findJavaFromJavaHome
+-
+-set JAVA_EXE=java.exe
+-%JAVA_EXE% -version >NUL 2>&1
+-if %ERRORLEVEL% equ 0 goto execute
+-
+-echo. 1>&2
+-echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH. 1>&2
+-echo. 1>&2
+-echo Please set the JAVA_HOME variable in your environment to match the 1>&2
+-echo location of your Java installation. 1>&2
+-
+-goto fail
+-
+-:findJavaFromJavaHome
+-set JAVA_HOME=%JAVA_HOME:"=%
+-set JAVA_EXE=%JAVA_HOME%/bin/java.exe
+-
+-if exist "%JAVA_EXE%" goto execute
+-
+-echo. 1>&2
+-echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME% 1>&2
+-echo. 1>&2
+-echo Please set the JAVA_HOME variable in your environment to match the 1>&2
+-echo location of your Java installation. 1>&2
+-
+-goto fail
+-
+-:execute
+-@rem Setup the command line
+-
+-set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
+-
+-
+-@rem Execute Gradle
+-"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
+-
+-:end
+-@rem End local scope for the variables with windows NT shell
+-if %ERRORLEVEL% equ 0 goto mainEnd
+-
+-:fail
+-rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
+-rem the _cmd.exe /c_ return code!
+-set EXIT_CODE=%ERRORLEVEL%
+-if %EXIT_CODE% equ 0 set EXIT_CODE=1
+-if not ""=="%GRADLE_EXIT_CONSOLE%" exit %EXIT_CODE%
+-exit /b %EXIT_CODE%
+-
+-:mainEnd
+-if "%OS%"=="Windows_NT" endlocal
+-
+-:omega
++@rem
++@rem Copyright 2015 the original author or authors.
++@rem
++@rem Licensed under the Apache License, Version 2.0 (the "License");
++@rem you may not use this file except in compliance with the License.
++@rem You may obtain a copy of the License at
++@rem
++@rem      https://www.apache.org/licenses/LICENSE-2.0
++@rem
++@rem Unless required by applicable law or agreed to in writing, software
++@rem distributed under the License is distributed on an "AS IS" BASIS,
++@rem WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++@rem See the License for the specific language governing permissions and
++@rem limitations under the License.
++@rem
++@rem SPDX-License-Identifier: Apache-2.0
++@rem
++
++@if "%DEBUG%"=="" @echo off
++@rem ##########################################################################
++@rem
++@rem  Gradle startup script for Windows
++@rem
++@rem ##########################################################################
++
++@rem Set local scope for the variables with windows NT shell
++if "%OS%"=="Windows_NT" setlocal
++
++set DIRNAME=%~dp0
++if "%DIRNAME%"=="" set DIRNAME=.
++@rem This is normally unused
++set APP_BASE_NAME=%~n0
++set APP_HOME=%DIRNAME%
++
++@rem Resolve any "." and ".." in APP_HOME to make it shorter.
++for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
++
++@rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
++set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
++
++@rem Find java.exe
++if defined JAVA_HOME goto findJavaFromJavaHome
++
++set JAVA_EXE=java.exe
++%JAVA_EXE% -version >NUL 2>&1
++if %ERRORLEVEL% equ 0 goto execute
++
++echo. 1>&2
++echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH. 1>&2
++echo. 1>&2
++echo Please set the JAVA_HOME variable in your environment to match the 1>&2
++echo location of your Java installation. 1>&2
++
++goto fail
++
++:findJavaFromJavaHome
++set JAVA_HOME=%JAVA_HOME:"=%
++set JAVA_EXE=%JAVA_HOME%/bin/java.exe
++
++if exist "%JAVA_EXE%" goto execute
++
++echo. 1>&2
++echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME% 1>&2
++echo. 1>&2
++echo Please set the JAVA_HOME variable in your environment to match the 1>&2
++echo location of your Java installation. 1>&2
++
++goto fail
++
++:execute
++@rem Setup the command line
++
++set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
++
++
++@rem Execute Gradle
++"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
++
++:end
++@rem End local scope for the variables with windows NT shell
++if %ERRORLEVEL% equ 0 goto mainEnd
++
++:fail
++rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
++rem the _cmd.exe /c_ return code!
++set EXIT_CODE=%ERRORLEVEL%
++if %EXIT_CODE% equ 0 set EXIT_CODE=1
++if not ""=="%GRADLE_EXIT_CONSOLE%" exit %EXIT_CODE%
++exit /b %EXIT_CODE%
++
++:mainEnd
++if "%OS%"=="Windows_NT" endlocal
++
++:omega
+--
+2.53.0

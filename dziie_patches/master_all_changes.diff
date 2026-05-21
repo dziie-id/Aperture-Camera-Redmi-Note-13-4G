@@ -1,0 +1,1559 @@
+diff --git a/.github/FUNDING.yml b/.github/FUNDING.yml
+new file mode 100644
+index 0000000..27b0431
+--- /dev/null
++++ b/.github/FUNDING.yml
+@@ -0,0 +1,15 @@
++# These are supported funding model platforms
++
++github: # Replace with up to 4 GitHub Sponsors-enabled usernames e.g., [user1, user2]
++patreon: # Replace with a single Patreon username
++open_collective: # Replace with a single Open Collective username
++ko_fi: dziie_id
++tidelift: # Replace with a single Tidelift platform-name/package-name e.g., npm/babel
++community_bridge: # Replace with a single Community Bridge project-name e.g., cloud-foundry
++liberapay: # Replace with a single Liberapay username
++issuehunt: # Replace with a single IssueHunt username
++lfx_crowdfunding: # Replace with a single LFX Crowdfunding project-name e.g., cloud-foundry
++polar: # Replace with a single Polar username
++buy_me_a_coffee: # Replace with a single Buy Me a Coffee username
++thanks_dev: # Replace with a single thanks.dev username
++custom: # Replace with up to 4 custom sponsorship URLs e.g., ['link1', 'link2']
+diff --git a/.gitignore b/.gitignore
+index 10cfdbf..d6599c6 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -7,4 +7,5 @@
+ /captures
+ .externalNativeBuild
+ .cxx
+-local.properties
++.kotlin/
++/.vscode
+\ No newline at end of file
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..91f6ba0
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,3 @@
++- Enable Aux
++- Remove Thermal Throtle
++- Enable Advanced Watermark
+diff --git a/app/aperture.jks b/app/aperture.jks
+new file mode 100644
+index 0000000..dbeaaa6
+Binary files /dev/null and b/app/aperture.jks differ
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+index 6c2ad1c..5c3ae91 100644
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -21,30 +21,34 @@ android {
+         applicationId = "org.lineageos.aperture"
+         minSdk = 26
+         targetSdk = 36
+-        versionCode = 1
+-        versionName = "1.0"
++        versionCode = 36
++        versionName = "16"
++    }
++
++    signingConfigs {
++        create("release") {
++            storeFile = file("aperture.jks")
++            storePassword = "android"
++            keyAlias = "androiddebugkey"
++            keyPassword = "android"
++            enableV1Signing = true
++            enableV2Signing = true
++            enableV3Signing = true
++        }
+     }
+
+     buildTypes {
+-        release {
+-            // Enables code shrinking, obfuscation, and optimization.
++        getByName("release") {
+             isMinifyEnabled = true
+-
+-            // Enables resource shrinking.
+-            isShrinkResources = true
+-
+-            // Includes the default ProGuard rules files.
+-            setProguardFiles(
+-                listOf(
+-                    getDefaultProguardFile("proguard-android-optimize.txt"),
+-                    "proguard-rules.pro"
+-                )
+-            )
++            isZipAlignEnabled = true
++            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
++            signingConfig = signingConfigs.getByName("release")
+         }
++        getByName("debug") {
++            signingConfig = signingConfigs.getByName("release")
+
+-        debug {
+-            // Append .dev to package name so we won't conflict with AOSP build.
+-            applicationIdSuffix = ".dev"
++            applicationIdSuffix = ".debug"
++            versionNameSuffix = "-debug"
+         }
+     }
+
+@@ -52,11 +56,9 @@ android {
+         sourceCompatibility = JavaVersion.VERSION_17
+         targetCompatibility = JavaVersion.VERSION_17
+     }
+-
+-    kotlin {
+-        compilerOptions {
+-            jvmTarget.set(JvmTarget.JVM_17)
+-        }
++
++    kotlinOptions {
++        jvmTarget = "17"
+     }
+
+     lint {
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+index e74bedd..f0480bf 100644
+--- a/app/src/main/AndroidManifest.xml
++++ b/app/src/main/AndroidManifest.xml
+@@ -40,7 +40,9 @@
+         android:label="@string/app_name"
+         android:supportsRtl="true"
+         android:theme="@style/Theme.Aperture"
+-        tools:targetApi="tiramisu">
++        tools:targetApi="tiramisu"
++        android:hardwareAccelerated="true"
++        android:largeHeap="true">
+
+         <uses-library
+             android:name="androidx.camera.extensions.impl"
+diff --git a/app/src/main/java/org/lineageos/aperture/ApertureApplication.kt b/app/src/main/java/org/lineageos/aperture/ApertureApplication.kt
+index bed49d6..0d8e6e0 100644
+--- a/app/src/main/java/org/lineageos/aperture/ApertureApplication.kt
++++ b/app/src/main/java/org/lineageos/aperture/ApertureApplication.kt
+@@ -7,6 +7,7 @@ package org.lineageos.aperture
+
+ import android.annotation.SuppressLint
+ import android.app.Application
++import android.util.Log
+ import androidx.camera.camera2.internal.CameraIdUtil
+ import com.google.android.material.color.DynamicColors
+ import kotlinx.coroutines.MainScope
+@@ -27,6 +28,8 @@ class ApertureApplication : Application() {
+     override fun onCreate() {
+         super.onCreate()
+
++        Log.d(LOG_TAG, "ApertureApplication created")
++
+         // Observe dynamic colors changes
+         DynamicColors.applyToActivitiesIfAvailable(this)
+
+@@ -35,4 +38,8 @@ class ApertureApplication : Application() {
+             overlaysRepository.backwardCompatibleCameraIds.asList()
+         )
+     }
++
++    companion object {
++        private val LOG_TAG = ApertureApplication::class.simpleName!!
++    }
+ }
+diff --git a/app/src/main/java/org/lineageos/aperture/CameraActivity.kt b/app/src/main/java/org/lineageos/aperture/CameraActivity.kt
+index 040e64a..835eebd 100644
+--- a/app/src/main/java/org/lineageos/aperture/CameraActivity.kt
++++ b/app/src/main/java/org/lineageos/aperture/CameraActivity.kt
+@@ -15,6 +15,7 @@ import android.graphics.Color
+ import android.graphics.Rect
+ import android.graphics.drawable.AnimatedVectorDrawable
+ import android.graphics.drawable.ColorDrawable
++import android.hardware.camera2.CaptureRequest
+ import android.icu.text.DecimalFormat
+ import android.net.Uri
+ import android.os.Build
+@@ -75,6 +76,7 @@ import coil3.video.VideoFrameDecoder
+ import com.google.android.material.snackbar.Snackbar
+ import kotlinx.coroutines.CoroutineScope
+ import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.delay
+ import kotlinx.coroutines.flow.collect
+ import kotlinx.coroutines.flow.collectLatest
+ import kotlinx.coroutines.guava.await
+@@ -257,6 +259,9 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
+             super.handleMessage(msg)
+             when (msg.what) {
+                 MSG_HIDE_ZOOM_SLIDER -> {
++                    if (viewModel.cameraState.value.isRecordingVideo) {
++                        return
++                    }
+                     zoomLevel.isVisible = false
+                 }
+
+@@ -455,9 +460,6 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
+             return@setOnTouchListener gestureDetector.onTouchEvent(event)
+         }
+         viewFinder.setOnClickListener {
+-            // Reset exposure level to 0 EV
+-            viewModel.setExposureCompensationLevel(0.5f)
+-
+             exposureLevel.isVisible = true
+             handler.removeMessages(MSG_HIDE_EXPOSURE_SLIDER)
+             handler.sendMessageDelayed(handler.obtainMessage(MSG_HIDE_EXPOSURE_SLIDER), 2000)
+@@ -683,12 +685,15 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
+                                 event.output.savedUri?.let {
+                                     openCapturePreview(it, MediaType.PHOTO)
+                                 }
+-                                event.photoOutputStream?.use {
+-                                    openCapturePreview(
+-                                        ByteArrayInputStream(
+-                                            event.photoOutputStream.toByteArray()
++                                when (val bytes = event.watermarkedPhotoBytes) {
++                                    null -> event.photoOutputStream?.use {
++                                        openCapturePreview(
++                                            ByteArrayInputStream(
++                                                event.photoOutputStream.toByteArray()
++                                            )
+                                         )
+-                                    )
++                                    }
++                                    else -> openCapturePreview(ByteArrayInputStream(bytes))
+                                 }
+                             }
+                         }
+@@ -811,7 +816,7 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
+
+                         CameraXCameraState.ERROR_CAMERA_DISABLED -> {
+                             // No way to fix it without user action, bail out
+-                            showToast(R.string.error_camera_disabled)
++                            showToast(R.drawable.ic_lock)
+                             finish()
+                         }
+
+@@ -878,6 +883,15 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
+
+                 // Update camera mode selector
+                 cameraModeSelectorLayout.setCameraState(cameraState)
++
++                // Keep zoom level visible while recording video
++                if (cameraState.isRecordingVideo) {
++                    zoomLevel.isVisible = true
++                    handler.removeMessages(MSG_HIDE_ZOOM_SLIDER)
++                } else if (cameraState == CameraState.IDLE && zoomLevel.isVisible) {
++                    handler.removeMessages(MSG_HIDE_ZOOM_SLIDER)
++                    handler.sendMessageDelayed(handler.obtainMessage(MSG_HIDE_ZOOM_SLIDER), 2000)
++                }
+             }
+         }
+
+@@ -1089,8 +1103,10 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
+                     zoomLevel.progress = it.linearZoom
+                     zoomLevel.isVisible = true
+
+-                    handler.removeMessages(MSG_HIDE_ZOOM_SLIDER)
+-                    handler.sendMessageDelayed(handler.obtainMessage(MSG_HIDE_ZOOM_SLIDER), 2000)
++                    if (!viewModel.cameraState.value.isRecordingVideo) {
++                        handler.removeMessages(MSG_HIDE_ZOOM_SLIDER)
++                        handler.sendMessageDelayed(handler.obtainMessage(MSG_HIDE_ZOOM_SLIDER), 2000)
++                    }
+
+                     lensSelectorLayout.onZoomRatioChanged(it.zoomRatio)
+                 }
+@@ -1607,10 +1623,14 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
+         viewModel.cameraController.setEnabledUseCases(cameraUseCases)
+
+         // Bind camera controller to lifecycle
+-        viewModel.cameraController.bindToLifecycle(this)
++
+
+         // Wait for camera to be ready
+         lifecycleScope.launch {
++            delay(600)
++
++            viewModel.cameraController.bindToLifecycle(this@CameraActivity)
++
+             viewModel.cameraController.initializationFuture.await()
+
+             val camera2CameraControl = viewModel.cameraController.camera2CameraControl ?: run {
+@@ -1646,14 +1666,16 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
+                 .setColorCorrectionAberrationMode(camera2Options.colorCorrectionAberrationMode)
+                 .setDistortionCorrectionMode(camera2Options.distortionCorrectionMode)
+                 .setHotPixelMode(camera2Options.hotPixelMode)
++                .apply {
++                    camera2Options.sceneMode?.let {
++                        setCaptureRequestOption(CaptureRequest.CONTROL_SCENE_MODE, it)
++                    }
++                }
+                 .build()
+         }
+
+         // Restore settings that can be set on the fly
+         viewModel.setVideoMicrophoneEnabled(viewModel.videoMicMode.value)
+-
+-        // Reset exposure level
+-        viewModel.setExposureCompensationLevel(0.5f)
+     }
+
+     private fun updateGalleryButton(uri: Uri?, fromCapture: Boolean) {
+diff --git a/app/src/main/java/org/lineageos/aperture/SettingsActivity.kt b/app/src/main/java/org/lineageos/aperture/SettingsActivity.kt
+index 0040e85..1266919 100644
+--- a/app/src/main/java/org/lineageos/aperture/SettingsActivity.kt
++++ b/app/src/main/java/org/lineageos/aperture/SettingsActivity.kt
+@@ -376,6 +376,8 @@ class SettingsActivity : AppCompatActivity(R.layout.activity_settings) {
+
+     class ProcessingSettingsFragment : SettingsFragment(R.xml.processing_preferences)
+
++    class WatermarkSettingsFragment : SettingsFragment(R.xml.watermark_preferences)
++
+     companion object {
+         private val LOG_TAG = SettingsActivity::class.simpleName!!
+     }
+diff --git a/app/src/main/java/org/lineageos/aperture/ext/PowerManager.kt b/app/src/main/java/org/lineageos/aperture/ext/PowerManager.kt
+index 30301c6..a56eeb8 100644
+--- a/app/src/main/java/org/lineageos/aperture/ext/PowerManager.kt
++++ b/app/src/main/java/org/lineageos/aperture/ext/PowerManager.kt
+@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.callbackFlow
+ @RequiresApi(Build.VERSION_CODES.Q)
+ fun PowerManager.thermalStatusFlow() = callbackFlow {
+     val listener = PowerManager.OnThermalStatusChangedListener {
+-        trySend(it)
++        trySend(PowerManager.THERMAL_STATUS_NONE)
+     }
+
+     addThermalStatusListener(listener)
+diff --git a/app/src/main/java/org/lineageos/aperture/models/CameraConfiguration.kt b/app/src/main/java/org/lineageos/aperture/models/CameraConfiguration.kt
+index 8b49995..fc7ac83 100644
+--- a/app/src/main/java/org/lineageos/aperture/models/CameraConfiguration.kt
++++ b/app/src/main/java/org/lineageos/aperture/models/CameraConfiguration.kt
+@@ -23,6 +23,7 @@ sealed interface CameraConfiguration {
+      * @param colorCorrectionAberrationMode The [ColorCorrectionAberrationMode] to use
+      * @param distortionCorrectionMode The [DistortionCorrectionMode] to use
+      * @param hotPixelMode The [HotPixelMode] to use
++     * @param sceneMode The Camera2 scene mode to use
+      */
+     data class Camera2Options(
+         val edgeMode: EdgeMode?,
+@@ -31,6 +32,7 @@ sealed interface CameraConfiguration {
+         val colorCorrectionAberrationMode: ColorCorrectionAberrationMode?,
+         val distortionCorrectionMode: DistortionCorrectionMode?,
+         val hotPixelMode: HotPixelMode?,
++        val sceneMode: Int?,
+     ) {
+         companion object {
+             /**
+@@ -43,6 +45,7 @@ sealed interface CameraConfiguration {
+                 colorCorrectionAberrationMode = null,
+                 distortionCorrectionMode = null,
+                 hotPixelMode = null,
++                sceneMode = null,
+             )
+         }
+     }
+diff --git a/app/src/main/java/org/lineageos/aperture/models/Event.kt b/app/src/main/java/org/lineageos/aperture/models/Event.kt
+index 4e22386..31ad8ce 100644
+--- a/app/src/main/java/org/lineageos/aperture/models/Event.kt
++++ b/app/src/main/java/org/lineageos/aperture/models/Event.kt
+@@ -38,6 +38,8 @@ sealed interface Event {
+         data class ImageSaved(
+             val output: ImageCapture.OutputFileResults,
+             val photoOutputStream: ByteArrayOutputStream?,
++            /** When non-null (e.g. single-capture with watermark), use this for preview and result. */
++            val watermarkedPhotoBytes: ByteArray? = null,
+         ) : PhotoCaptureStatus
+
+         data class Error(
+diff --git a/app/src/main/java/org/lineageos/aperture/repositories/CameraRepository.kt b/app/src/main/java/org/lineageos/aperture/repositories/CameraRepository.kt
+index de8e6bd..eeb0144 100644
+--- a/app/src/main/java/org/lineageos/aperture/repositories/CameraRepository.kt
++++ b/app/src/main/java/org/lineageos/aperture/repositories/CameraRepository.kt
+@@ -151,6 +151,8 @@ class CameraRepository(
+         private val mainCameraIds = setOf(
+             "0",
+             "1",
++            "2",
++            "3",
+         )
+     }
+-}
++}
+\ No newline at end of file
+diff --git a/app/src/main/java/org/lineageos/aperture/repositories/PreferencesRepository.kt b/app/src/main/java/org/lineageos/aperture/repositories/PreferencesRepository.kt
+index 78df714..b83bad2 100644
+--- a/app/src/main/java/org/lineageos/aperture/repositories/PreferencesRepository.kt
++++ b/app/src/main/java/org/lineageos/aperture/repositories/PreferencesRepository.kt
+@@ -171,6 +171,102 @@ class PreferencesRepository(
+         defaultValue = true,
+     ).asPreferenceHolder()
+
++    /**
++     * Whether to add a date/time watermark at the bottom of each photo.
++     */
++    val photoWatermark = primitivePreference(
++        key = "photo_watermark",
++        defaultValue = false,
++    ).asPreferenceHolder()
++
++    /**
++     * Whether manual control for watermark is enabled.
++     */
++    val watermarkManualControl = primitivePreference(
++        key = "watermark_manual_control",
++        defaultValue = false,
++    ).asPreferenceHolder()
++
++    /**
++     * Custom text for watermark.
++     */
++    val watermarkCustomText = primitivePreference(
++        key = "watermark_custom_text",
++        defaultValue = "",
++    ).asPreferenceHolder()
++
++    /**
++     * Whether to show date in watermark.
++     */
++    val watermarkShowDate = primitivePreference(
++        key = "watermark_show_date",
++        defaultValue = true,
++    ).asPreferenceHolder()
++
++    /**
++     * Whether to show time in watermark.
++     */
++    val watermarkShowTime = primitivePreference(
++        key = "watermark_show_time",
++        defaultValue = true,
++    ).asPreferenceHolder()
++
++    /**
++     * Whether to show location in watermark.
++     */
++    val watermarkShowLocation = primitivePreference(
++        key = "watermark_show_location",
++        defaultValue = true,
++    ).asPreferenceHolder()
++
++    /**
++     * Whether to show address in watermark.
++     */
++    val watermarkShowAddress = primitivePreference(
++        key = "watermark_show_address",
++        defaultValue = false,
++    ).asPreferenceHolder()
++
++    /**
++     * Whether to show device name in watermark.
++     */
++    val watermarkShowDeviceName = primitivePreference(
++        key = "watermark_show_device_name",
++        defaultValue = true,
++    ).asPreferenceHolder()
++
++    /**
++     * Whether to show background in watermark.
++     */
++    val watermarkShowBackground = primitivePreference(
++        key = "watermark_show_background",
++        defaultValue = true,
++    ).asPreferenceHolder()
++
++    /**
++     * Watermark text size fraction.
++     */
++    val watermarkTextSize = primitivePreference(
++        key = "watermark_text_size",
++        defaultValue = "0.028",
++    ).asPreferenceHolder()
++
++    /**
++     * Watermark text color.
++     */
++    val watermarkTextColor = primitivePreference(
++        key = "watermark_text_color",
++        defaultValue = "#FFFFFFFF",
++    ).asPreferenceHolder()
++
++    /**
++     * Watermark font.
++     */
++    val watermarkFont = primitivePreference(
++        key = "watermark_font",
++        defaultValue = "sans-serif",
++    ).asPreferenceHolder()
++
+     /**
+      * Desired [FlashMode] for photos.
+      */
+diff --git a/app/src/main/java/org/lineageos/aperture/ui/views/LensSelectorLayout.kt b/app/src/main/java/org/lineageos/aperture/ui/views/LensSelectorLayout.kt
+index a731800..100cd6b 100644
+--- a/app/src/main/java/org/lineageos/aperture/ui/views/LensSelectorLayout.kt
++++ b/app/src/main/java/org/lineageos/aperture/ui/views/LensSelectorLayout.kt
+@@ -81,7 +81,12 @@ class LensSelectorLayout @JvmOverloads constructor(
+                             onResetZoomRatioCallback()
+                         }
+                     }
+-                    text = formatZoomRatio(camera.intrinsicZoomRatio)
++                    text = when (camera.cameraId.toIntOrNull()) {
++                        0 -> "Main"
++                        2 -> "Wide"
++                        3 -> "Macro"
++                        else -> formatZoomRatio(camera.intrinsicZoomRatio)
++                    }
+                 }
+
+                 addView(button)
+@@ -117,7 +122,7 @@ class LensSelectorLayout @JvmOverloads constructor(
+     private fun inflateButton(): Button {
+         val button = layoutInflater.inflate(R.layout.lens_selector_button, this, false) as Button
+         return button.apply {
+-            layoutParams = LayoutParams(32.px, 32.px).apply {
++            layoutParams = LayoutParams(40.px, 32.px).apply {
+                 setMargins(5)
+             }
+         }
+@@ -155,11 +160,22 @@ class LensSelectorLayout @JvmOverloads constructor(
+     @Suppress("SetTextI18n")
+     private fun updateButtonAttributes(button: Button, currentCamera: Boolean) {
+         button.isSelected = currentCamera
+-        val formattedZoomRatio = formatZoomRatio(buttonToApproximateZoomRatio[button]!!)
++        val approximateZoomRatio = buttonToApproximateZoomRatio[button]!!
++        val cameraId = buttonToCamera[button]?.cameraId?.toIntOrNull()
+         button.text = if (currentCamera) {
+-            "${formattedZoomRatio}×"
++            when (cameraId) {
++                0 -> "Main"
++                2 -> "Wide"
++                3 -> "Macro"
++                else -> "${formatZoomRatio(approximateZoomRatio)}×"
++            }
+         } else {
+-            formattedZoomRatio
++            when (cameraId) {
++                0 -> "Main"
++                2 -> "Wide"
++                3 -> "Macro"
++                else -> formatZoomRatio(approximateZoomRatio)
++            }
+         }
+         button.rotation = screenRotation.compensationValue.toFloat()
+     }
+diff --git a/app/src/main/java/org/lineageos/aperture/utils/WatermarkUtils.kt b/app/src/main/java/org/lineageos/aperture/utils/WatermarkUtils.kt
+new file mode 100644
+index 0000000..5237041
+--- /dev/null
++++ b/app/src/main/java/org/lineageos/aperture/utils/WatermarkUtils.kt
+@@ -0,0 +1,359 @@
++/*
++ * SPDX-FileCopyrightText: 2025 The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++package org.lineageos.aperture.utils
++
++import android.content.Context
++import android.graphics.Bitmap
++import android.graphics.Canvas
++import android.graphics.Color
++import android.graphics.Paint
++import android.graphics.Rect
++import android.graphics.Typeface
++import android.location.Geocoder
++import android.location.Location
++import android.net.Uri
++import android.os.Build
++import android.util.Log
++import androidx.exifinterface.media.ExifInterface
++import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.withContext
++import java.io.ByteArrayInputStream
++import java.io.ByteArrayOutputStream
++import java.text.SimpleDateFormat
++import java.util.Locale
++
++private const val LOG_TAG = "WatermarkUtils"
++
++/**
++ * Format: jam 24 jam | Tanggal Bulan Tahun (e.g. "19:00 | 26 Februari 2026").
++ */
++private val TIME_FORMAT = SimpleDateFormat("HH:mm", Locale("id"))
++private val DATE_FORMAT = SimpleDateFormat("d MMMM yyyy", Locale("id"))
++
++object WatermarkUtils {
++    private const val PADDING_FRACTION = 0.035f
++
++    fun drawWatermark(
++        bitmap: Bitmap,
++        timestampMillis: Long,
++        location: Location? = null,
++        watermarkManualControl: Boolean,
++        watermarkCustomText: String,
++        watermarkShowDate: Boolean,
++        watermarkShowTime: Boolean,
++        watermarkShowLocation: Boolean,
++        watermarkShowAddress: Boolean,
++        watermarkShowDeviceName: Boolean,
++        watermarkShowBackground: Boolean,
++        watermarkTextSize: Float,
++        watermarkTextColor: Int,
++        watermarkFont: String,
++        address: String?,
++    ): Bitmap {
++        val shortSide = minOf(bitmap.width, bitmap.height)
++
++        val textSizePx = shortSide * watermarkTextSize
++        val paddingPx = (shortSide * PADDING_FRACTION).toInt()
++        val lineSpacing = (textSizePx * 0.3f).toInt()
++
++        val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true) ?: return bitmap
++        val canvas = Canvas(mutableBitmap)
++
++        val timeStr = TIME_FORMAT.format(timestampMillis)
++        val dateStr = DATE_FORMAT.format(timestampMillis)
++
++        // Right side: Date/Time (Top), Coordinates (Bottom)
++        val lineRight1 = when {
++            watermarkShowDate && watermarkShowTime -> "$timeStr | $dateStr"
++            watermarkShowDate -> dateStr
++            watermarkShowTime -> timeStr
++            else -> null
++        }
++        val lineRight2 = if (watermarkShowLocation) location?.let {
++            String.format(Locale.US, "%.5f, %.5f", it.latitude, it.longitude)
++        } else null
++
++        // Left side: Device Name (Top), Address (Bottom)
++        val deviceName = watermarkCustomText.ifEmpty { Build.MODEL }
++        val lineLeft1 = if (watermarkShowDeviceName) deviceName else null
++        val lineLeft2 = if (watermarkShowAddress) address else null
++
++        val typeface = try {
++            Typeface.create(watermarkFont, Typeface.BOLD)
++        } catch (e: Exception) {
++            Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
++        }
++
++        val paintFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
++            this.textSize = textSizePx
++            this.typeface = typeface
++            color = watermarkTextColor
++            style = Paint.Style.FILL
++        }
++        val paintStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
++            this.textSize = textSizePx
++            this.typeface = typeface
++            color = Color.BLACK
++            style = Paint.Style.STROKE
++            strokeWidth = (textSizePx * 0.1f).coerceIn(1f, 3f)
++        }
++
++        val fontMetrics = paintFill.fontMetrics
++        val textHeight = fontMetrics.descent - fontMetrics.ascent
++
++        // Y positions logic: Dynamic per side
++        val yBase2 = mutableBitmap.height - paddingPx - fontMetrics.descent
++        val yTopIfTwoLines = yBase2 - textHeight - lineSpacing
++
++        // Draw Background
++        if (watermarkShowBackground) {
++            val hasAnyText = lineLeft1 != null || lineLeft2 != null || lineRight1 != null || lineRight2 != null
++            if (hasAnyText) {
++                val bgPaint = Paint().apply { color = Color.argb(120, 0, 0, 0) }
++
++                // Determine if we need background for 1 or 2 lines based on the side with most lines
++                val maxLines = if (lineLeft2 != null || lineRight2 != null) 2 else 1
++                val top = if (maxLines == 2) yTopIfTwoLines + fontMetrics.ascent - paddingPx / 4
++                          else yBase2 + fontMetrics.ascent - paddingPx / 4
++                val bottom = yBase2 + fontMetrics.descent + paddingPx / 4
++
++                val rect = Rect(0, top.toInt(), mutableBitmap.width, bottom.toInt())
++                canvas.drawRect(rect, bgPaint)
++            }
++        }
++
++        // Draw Right Watermark
++        val xRight = mutableBitmap.width - paddingPx
++        val yRight = if (lineRight2 != null) yTopIfTwoLines else yBase2
++        lineRight1?.let {
++            canvas.drawText(it, xRight - paintFill.measureText(it), yRight, paintStroke)
++            canvas.drawText(it, xRight - paintFill.measureText(it), yRight, paintFill)
++        }
++        lineRight2?.let {
++            canvas.drawText(it, xRight - paintFill.measureText(it), yBase2, paintStroke)
++            canvas.drawText(it, xRight - paintFill.measureText(it), yBase2, paintFill)
++        }
++
++        // Draw Left Watermark
++        val xLeft = paddingPx.toFloat()
++        val yLeft = if (lineLeft2 != null) yTopIfTwoLines else yBase2
++        lineLeft1?.let {
++            canvas.drawText(it, xLeft, yLeft, paintStroke)
++            canvas.drawText(it, xLeft, yLeft, paintFill)
++        }
++        lineLeft2?.let {
++            canvas.drawText(it, xLeft, yBase2, paintStroke)
++            canvas.drawText(it, xLeft, yBase2, paintFill)
++        }
++
++        return mutableBitmap
++    }
++
++    private fun getAddressFromLocation(context: Context, location: Location?): String? {
++        if (location == null) return null
++        return try {
++            val geocoder = Geocoder(context, Locale.getDefault())
++            @Suppress("DEPRECATION")
++            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
++            val address = addresses?.firstOrNull() ?: return null
++
++            val street = address.thoroughfare // Nama Jalan
++            val houseNumber = address.subThoroughfare // Nomor Rumah/Gedung
++
++            if (street != null) {
++                if (houseNumber != null) "$street No. $houseNumber" else street
++            } else {
++                // Jika jalan tidak ditemukan, ambil area yang lebih kecil agar tetap pendek
++                address.subLocality ?: address.locality ?: address.getAddressLine(0).take(30)
++            }
++        } catch (e: Exception) {
++            Log.e(LOG_TAG, "Failed to get address from location", e)
++            null
++        }
++    }
++
++    /**
++     * Applies timestamp and optional location watermark to JPEG bytes.
++     */
++    fun applyWatermarkToJpegBytes(
++        context: Context,
++        jpegBytes: ByteArray,
++        timestampMillis: Long,
++        location: Location? = null,
++        watermarkManualControl: Boolean = false,
++        watermarkCustomText: String = "",
++        watermarkShowDate: Boolean = true,
++        watermarkShowTime: Boolean = true,
++        watermarkShowLocation: Boolean = true,
++        watermarkShowAddress: Boolean = false,
++        watermarkShowDeviceName: Boolean = true,
++        watermarkShowBackground: Boolean = false,
++        watermarkTextSize: Float = 0.028f,
++        watermarkTextColor: Int = Color.WHITE,
++        watermarkFont: String = "sans-serif",
++    ): ByteArray? {
++        return try {
++            val exif = ExifInterface(ByteArrayInputStream(jpegBytes))
++            val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
++            val bitmap = android.graphics.BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.size) ?: return null
++            val rotated = when (orientation) {
++                ExifInterface.ORIENTATION_ROTATE_90 -> rotateBitmap(bitmap, 90)
++                ExifInterface.ORIENTATION_ROTATE_180 -> rotateBitmap(bitmap, 180)
++                ExifInterface.ORIENTATION_ROTATE_270 -> rotateBitmap(bitmap, 270)
++                else -> bitmap
++            }
++            if (rotated != bitmap) bitmap.recycle()
++
++            val address = if (watermarkShowAddress) getAddressFromLocation(context, location) else null
++
++            val watermarked = drawWatermark(
++                rotated, timestampMillis, location, watermarkManualControl,
++                watermarkCustomText, watermarkShowDate, watermarkShowTime, watermarkShowLocation,
++                watermarkShowAddress, watermarkShowDeviceName, watermarkShowBackground,
++                watermarkTextSize, watermarkTextColor, watermarkFont, address
++            )
++            if (watermarked != rotated) rotated.recycle()
++            ByteArrayOutputStream().use { out ->
++                watermarked.compress(Bitmap.CompressFormat.JPEG, 95, out)
++                watermarked.recycle()
++
++                // Copy EXIF from original bytes to watermarked bytes
++                val watermarkedBytes = out.toByteArray()
++                val newExif = ExifInterface(ByteArrayInputStream(watermarkedBytes))
++
++                // Copy relevant attributes
++                val tags = arrayOf(
++                    ExifInterface.TAG_MAKE,
++                    ExifInterface.TAG_MODEL,
++                    ExifInterface.TAG_DATETIME,
++                    ExifInterface.TAG_FLASH,
++                    ExifInterface.TAG_FOCAL_LENGTH,
++                    ExifInterface.TAG_GPS_LATITUDE,
++                    ExifInterface.TAG_GPS_LONGITUDE,
++                    ExifInterface.TAG_GPS_LATITUDE_REF,
++                    ExifInterface.TAG_GPS_LONGITUDE_REF,
++                    ExifInterface.TAG_EXPOSURE_TIME,
++                    ExifInterface.TAG_F_NUMBER,
++                    ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
++                    ExifInterface.TAG_WHITE_BALANCE
++                )
++
++                for (tag in tags) {
++                    exif.getAttribute(tag)?.let { value ->
++                        newExif.setAttribute(tag, value)
++                    }
++                }
++
++                watermarkedBytes
++            }
++        } catch (e: Exception) {
++            Log.e(LOG_TAG, "Failed to apply watermark to bytes", e)
++            null
++        }
++    }
++
++    /**
++     * Loads an image from [uri] and applies watermark.
++     */
++    suspend fun applyWatermarkToUri(
++        uri: Uri,
++        timestampMillis: Long,
++        contentResolver: android.content.ContentResolver,
++        context: Context,
++        location: Location? = null,
++        watermarkManualControl: Boolean = false,
++        watermarkCustomText: String = "",
++        watermarkShowDate: Boolean = true,
++        watermarkShowTime: Boolean = true,
++        watermarkShowLocation: Boolean = true,
++        watermarkShowAddress: Boolean = false,
++        watermarkShowDeviceName: Boolean = true,
++        watermarkShowBackground: Boolean = false,
++        watermarkTextSize: Float = 0.028f,
++        watermarkTextColor: Int = Color.WHITE,
++        watermarkFont: String = "sans-serif",
++    ): Boolean = withContext(Dispatchers.IO) {
++        val address = if (watermarkShowAddress) getAddressFromLocation(context, location) else null
++
++        try {
++            contentResolver.openInputStream(uri)?.use { input ->
++                val bytes = input.readBytes()
++                val exif = ExifInterface(ByteArrayInputStream(bytes))
++
++                val bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@withContext false
++                val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
++                val rotated = when (orientation) {
++                    ExifInterface.ORIENTATION_ROTATE_90 -> rotateBitmap(bitmap, 90)
++                    ExifInterface.ORIENTATION_ROTATE_180 -> rotateBitmap(bitmap, 180)
++                    ExifInterface.ORIENTATION_ROTATE_270 -> rotateBitmap(bitmap, 270)
++                    else -> bitmap
++                }
++                if (rotated != bitmap) bitmap.recycle()
++
++                val watermarked = drawWatermark(
++                    rotated, timestampMillis, location, watermarkManualControl,
++                    watermarkCustomText, watermarkShowDate, watermarkShowTime, watermarkShowLocation,
++                    watermarkShowAddress, watermarkShowDeviceName, watermarkShowBackground,
++                    watermarkTextSize, watermarkTextColor, watermarkFont, address
++                )
++                if (watermarked != rotated) rotated.recycle()
++
++                val outputStream = ByteArrayOutputStream()
++                watermarked.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
++                val watermarkedBytes = outputStream.toByteArray()
++                watermarked.recycle()
++
++                // Write watermarked bytes back
++                contentResolver.openOutputStream(uri, "wt")?.use { out ->
++                    out.write(watermarkedBytes)
++                } ?: return@withContext false
++
++                // RE-APPLY EXIF after writing file
++                contentResolver.openFileDescriptor(uri, "rw")?.use { pfd ->
++                    val newExif = ExifInterface(pfd.fileDescriptor)
++
++                    val tags = arrayOf(
++                        ExifInterface.TAG_MAKE,
++                        ExifInterface.TAG_MODEL,
++                        ExifInterface.TAG_DATETIME,
++                        ExifInterface.TAG_FLASH,
++                        ExifInterface.TAG_FOCAL_LENGTH,
++                        ExifInterface.TAG_GPS_LATITUDE,
++                        ExifInterface.TAG_GPS_LONGITUDE,
++                        ExifInterface.TAG_GPS_LATITUDE_REF,
++                        ExifInterface.TAG_GPS_LONGITUDE_REF,
++                        ExifInterface.TAG_EXPOSURE_TIME,
++                        ExifInterface.TAG_F_NUMBER,
++                        ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
++                        ExifInterface.TAG_WHITE_BALANCE,
++                        ExifInterface.TAG_ORIENTATION // Set to normal as we already rotated the bitmap
++                    )
++
++                    for (tag in tags) {
++                        if (tag == ExifInterface.TAG_ORIENTATION) {
++                            newExif.setAttribute(tag, ExifInterface.ORIENTATION_NORMAL.toString())
++                        } else {
++                            exif.getAttribute(tag)?.let { value ->
++                                newExif.setAttribute(tag, value)
++                            }
++                        }
++                    }
++                    newExif.saveAttributes()
++                }
++
++                true
++            } ?: false
++        } catch (e: Exception) {
++            Log.e(LOG_TAG, "Failed to apply watermark", e)
++            false
++        }
++    }
++
++    private fun rotateBitmap(bitmap: Bitmap, degrees: Int): Bitmap {
++        val matrix = android.graphics.Matrix().apply { postRotate(degrees.toFloat()) }
++        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
++    }
++}
+diff --git a/app/src/main/java/org/lineageos/aperture/viewmodels/CameraViewModel.kt b/app/src/main/java/org/lineageos/aperture/viewmodels/CameraViewModel.kt
+index 323283f..8881c8b 100644
+--- a/app/src/main/java/org/lineageos/aperture/viewmodels/CameraViewModel.kt
++++ b/app/src/main/java/org/lineageos/aperture/viewmodels/CameraViewModel.kt
+@@ -9,6 +9,7 @@ import android.animation.ValueAnimator
+ import android.app.Application
+ import android.content.Intent
+ import android.content.IntentFilter
++import android.graphics.Color
+ import android.graphics.ImageFormat
+ import android.location.LocationManager
+ import android.net.Uri
+@@ -37,6 +38,7 @@ import kotlinx.coroutines.Dispatchers
+ import kotlinx.coroutines.ExperimentalCoroutinesApi
+ import kotlinx.coroutines.channels.awaitClose
+ import kotlinx.coroutines.delay
++import kotlinx.coroutines.withContext
+ import kotlinx.coroutines.flow.MutableSharedFlow
+ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.SharingStarted
+@@ -91,6 +93,7 @@ import org.lineageos.aperture.models.TimerMode
+ import org.lineageos.aperture.qr.QrImageAnalyzer
+ import org.lineageos.aperture.repositories.CameraRepository
+ import org.lineageos.aperture.utils.CameraSoundsUtils
++import org.lineageos.aperture.utils.WatermarkUtils
+ import org.lineageos.aperture.utils.StorageUtils
+ import java.io.ByteArrayOutputStream
+ import java.util.concurrent.ExecutorService
+@@ -334,7 +337,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
+         }
+         .flowOn(Dispatchers.IO)
+         .stateIn(
+-            viewModelScope,
++            scope = viewModelScope,
+             started = SharingStarted.Eagerly,
+             initialValue = setOf()
+         )
+@@ -954,7 +957,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
+                     preferencesRepository.colorCorrectionAberrationMode,
+                     preferencesRepository.distortionCorrectionMode,
+                     preferencesRepository.hotPixelMode,
+-                ) { }.drop(1).collectLatest {
++                ) { }.collectLatest {
+                     updateConfiguration<CameraConfiguration> { cameraConfiguration ->
+                         createInitialCameraConfiguration(
+                             camera = cameraConfiguration.camera,
+@@ -1089,12 +1092,6 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
+                     "Photo capture succeeded: ${output.savedUri} format = ${output.imageFormat}"
+                 )
+
+-                if (!inSingleCaptureMode.value) {
+-                    output.savedUri?.let {
+-                        mediaRepository.broadcastNewPicture(it)
+-                    }
+-                }
+-
+                 if (imageCount.decrementAndGet() == 0) {
+                     cameraState.value = CameraState.IDLE
+                 }
+@@ -1106,12 +1103,93 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
+                     return
+                 }
+
+-                emitEvent(
+-                    Event.PhotoCaptureStatus.ImageSaved(
+-                        output,
+-                        photoOutputStream,
+-                    )
+-                )
++                // Watermark when toggle is on (Manual watermark control). Only for photo mode (JPEG).
++                val watermarkEnabled = preferencesRepository.watermarkManualControl.value &&
++                    imageOutputFormat != ImageCapture.OUTPUT_FORMAT_RAW
++
++                when {
++                    // Normal camera: photo saved to URI → watermark file then broadcast + emit
++                    watermarkEnabled && output.savedUri != null -> {
++                        viewModelScope.launch {
++                             WatermarkUtils.applyWatermarkToUri(
++                                output.savedUri!!,
++                                timestamp,
++                                applicationContext.contentResolver,
++                                applicationContext,
++                                location.value,
++                                watermarkManualControl = preferencesRepository.watermarkManualControl.value,
++                                watermarkCustomText = preferencesRepository.watermarkCustomText.value,
++                                watermarkShowDate = preferencesRepository.watermarkShowDate.value,
++                                watermarkShowTime = preferencesRepository.watermarkShowTime.value,
++                                watermarkShowLocation = preferencesRepository.watermarkShowLocation.value,
++                                watermarkShowAddress = preferencesRepository.watermarkShowAddress.value,
++                                watermarkShowDeviceName = preferencesRepository.watermarkShowDeviceName.value,
++                                watermarkShowBackground = preferencesRepository.watermarkShowBackground.value,
++                                watermarkTextSize = preferencesRepository.watermarkTextSize.value.toFloatOrNull() ?: 0.028f,
++                                watermarkTextColor = try { Color.parseColor(preferencesRepository.watermarkTextColor.value) } catch (e: Exception) { Color.WHITE },
++                                watermarkFont = preferencesRepository.watermarkFont.value,
++                            )
++                            withContext(Dispatchers.Main) {
++                                if (!inSingleCaptureMode.value) {
++                                    mediaRepository.broadcastNewPicture(output.savedUri!!)
++                                }
++                                emitEvent(
++                                    Event.PhotoCaptureStatus.ImageSaved(
++                                        output,
++                                        photoOutputStream,
++                                    )
++                                )
++                            }
++                        }
++                    }
++                    // Single capture (another app): photo in bytes → watermark bytes then emit
++                    watermarkEnabled && photoOutputStream != null -> {
++                        val stream = photoOutputStream
++                        viewModelScope.launch {
++                            val watermarkedBytes = withContext(Dispatchers.IO) {
++                                WatermarkUtils.applyWatermarkToJpegBytes(
++                                    applicationContext,
++                                    stream.toByteArray(),
++                                    timestamp,
++                                    location.value,
++                                    watermarkManualControl = preferencesRepository.watermarkManualControl.value,
++                                    watermarkCustomText = preferencesRepository.watermarkCustomText.value,
++                                    watermarkShowDate = preferencesRepository.watermarkShowDate.value,
++                                    watermarkShowTime = preferencesRepository.watermarkShowTime.value,
++                                    watermarkShowLocation = preferencesRepository.watermarkShowLocation.value,
++                                    watermarkShowAddress = preferencesRepository.watermarkShowAddress.value,
++                                    watermarkShowDeviceName = preferencesRepository.watermarkShowDeviceName.value,
++                                    watermarkShowBackground = preferencesRepository.watermarkShowBackground.value,
++                                    watermarkTextSize = preferencesRepository.watermarkTextSize.value.toFloatOrNull() ?: 0.028f,
++                                    watermarkTextColor = try { Color.parseColor(preferencesRepository.watermarkTextColor.value) } catch (e: Exception) { Color.WHITE },
++                                    watermarkFont = preferencesRepository.watermarkFont.value,
++                                )
++                            }
++                            withContext(Dispatchers.Main) {
++                                emitEvent(
++                                    Event.PhotoCaptureStatus.ImageSaved(
++                                        output,
++                                        photoOutputStream,
++                                        watermarkedPhotoBytes = watermarkedBytes,
++                                    )
++                                )
++                            }
++                        }
++                    }
++                    else -> {
++                        if (!inSingleCaptureMode.value) {
++                            output.savedUri?.let {
++                                mediaRepository.broadcastNewPicture(it)
++                            }
++                        }
++                        emitEvent(
++                            Event.PhotoCaptureStatus.ImageSaved(
++                                output,
++                                photoOutputStream,
++                            )
++                        )
++                    }
++                }
+             }
+
+             override fun onError(exc: ImageCaptureException) {
+@@ -1797,6 +1875,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
+                 else -> true
+             }
+         },
++        sceneMode = null,
+     )
+
+     @androidx.annotation.OptIn(ExperimentalZeroShutterLag::class)
+@@ -1827,6 +1906,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
+             camera.supportedHotPixelModes.contains(it)
+                     && HotPixelMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
+         },
++        sceneMode = null,
+     )
+
+     /**
+@@ -1847,9 +1927,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
+         }
+
+         return try {
+-            val currentCameraConfiguration = _cameraConfiguration.value ?: error(
+-                "Camera configuration is null"
+-            )
++            val currentCameraConfiguration = _cameraConfiguration.value ?: return false
+
+             T::class.safeCast(currentCameraConfiguration)?.let {
+                 val newCameraConfiguration = block(it)
+@@ -1868,8 +1946,9 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
+
+         private const val SINGLE_CAPTURE_PHOTO_BUFFER_INITIAL_SIZE_BYTES = 8 * 1024 * 1024 // 8 MiB
+
+-        private val cameraFacingComparator = Comparator.comparingInt<CameraFacing> {
++        private val cameraFacingComparator = Comparator.comparingInt<CameraFacing?> {
+             when (it) {
++                null -> 3
+                 CameraFacing.UNKNOWN -> 3
+                 CameraFacing.FRONT -> 1
+                 CameraFacing.BACK -> 0
+diff --git a/app/src/main/res/values/arrays.xml b/app/src/main/res/values/arrays.xml
+index beb7491..857e430 100644
+--- a/app/src/main/res/values/arrays.xml
++++ b/app/src/main/res/values/arrays.xml
+@@ -187,4 +187,47 @@
+         <item>on</item>
+         <item>on_ffc_only</item>
+     </string-array>
++
++    <!-- Watermark text size preference -->
++    <string-array name="watermark_text_size_entries" translatable="false">
++        <item>Small</item>
++        <item>Normal</item>
++        <item>Large</item>
++        <item>Extra Large</item>
++    </string-array>
++
++    <string-array name="watermark_text_size_values" translatable="false">
++        <item>0.02</item>
++        <item>0.028</item>
++        <item>0.04</item>
++        <item>0.06</item>
++    </string-array>
++
++    <!-- Watermark text color preference -->
++    <string-array name="watermark_text_color_entries" translatable="false">
++        <item>White</item>
++        <item>Black</item>
++        <item>Red</item>
++        <item>Yellow</item>
++    </string-array>
++
++    <string-array name="watermark_text_color_values" translatable="false">
++        <item>#FFFFFFFF</item>
++        <item>#FF000000</item>
++        <item>#FFFF0000</item>
++        <item>#FFFFFF00</item>
++    </string-array>
++
++    <!-- Watermark font preference -->
++    <string-array name="watermark_font_entries" translatable="false">
++        <item>Default</item>
++        <item>Serif</item>
++        <item>Monospace</item>
++    </string-array>
++
++    <string-array name="watermark_font_values" translatable="false">
++        <item>sans-serif</item>
++        <item>serif</item>
++        <item>monospace</item>
++    </string-array>
+ </resources>
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+index 3609a14..bedea4f 100644
+--- a/app/src/main/res/values/strings.xml
++++ b/app/src/main/res/values/strings.xml
+@@ -144,6 +144,24 @@
+     <string name="disable_jpeg_with_raw_summary">Disable JPEG when RAW image capture is enabled</string>
+     <string name="photo_ffc_mirror_title">Mirror front camera</string>
+     <string name="photo_ffc_mirror_summary">Save front camera photos as they appear in the preview</string>
++    <string name="photo_watermark_title">Photo watermark</string>
++    <string name="photo_watermark_summary">Add watermark to photos</string>
++
++    <!-- Watermark Preferences -->
++    <string name="watermark_settings_title">Watermark settings</string>
++    <string name="watermark_custom_text_title">Custom text / Device name</string>
++    <string name="watermark_custom_text_summary">Add custom text to the bottom left (defaults to device model)</string>
++    <string name="watermark_show_date_title">Show date</string>
++    <string name="watermark_show_time_title">Show time</string>
++    <string name="watermark_show_location_title">Show coordinates</string>
++    <string name="watermark_show_address_title">Show address</string>
++    <string name="watermark_show_device_name_title">Show device name</string>
++    <string name="watermark_show_background_title">Show background</string>
++    <string name="watermark_text_size_title">Text size</string>
++    <string name="watermark_text_color_title">Text color</string>
++    <string name="watermark_font_title">Font style</string>
++    <string name="watermark_manual_control_title">Manual watermark control</string>
++    <string name="watermark_manual_control_summary">Enable advanced watermark customization</string>
+
+     <!-- Video Preferences -->
+     <string name="video_stabilization_title">Enable video stabilization</string>
+diff --git a/app/src/main/res/xml/root_preferences.xml b/app/src/main/res/xml/root_preferences.xml
+index 925cf8c..1394d39 100644
+--- a/app/src/main/res/xml/root_preferences.xml
++++ b/app/src/main/res/xml/root_preferences.xml
+@@ -93,6 +93,12 @@
+             app:summary="@string/photo_ffc_mirror_summary"
+             app:title="@string/photo_ffc_mirror_title" />
+
++        <Preference
++            app:fragment="org.lineageos.aperture.SettingsActivity$WatermarkSettingsFragment"
++            app:iconSpaceReserved="false"
++            app:summary="@string/photo_watermark_summary"
++            app:title="@string/photo_watermark_title" />
++
+     </PreferenceCategory>
+
+     <PreferenceCategory
+diff --git a/app/src/main/res/xml/watermark_preferences.xml b/app/src/main/res/xml/watermark_preferences.xml
+new file mode 100644
+index 0000000..ef5095a
+--- /dev/null
++++ b/app/src/main/res/xml/watermark_preferences.xml
+@@ -0,0 +1,97 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++     SPDX-FileCopyrightText: 2025 The LineageOS Project
++     SPDX-License-Identifier: Apache-2.0
++-->
++<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
++
++    <PreferenceCategory
++        app:iconSpaceReserved="false"
++        app:title="@string/watermark_settings_title">
++
++        <SwitchPreference
++            app:defaultValue="false"
++            app:iconSpaceReserved="false"
++            app:key="watermark_manual_control"
++            app:summary="@string/watermark_manual_control_summary"
++            app:title="@string/watermark_manual_control_title" />
++
++        <EditTextPreference
++            app:dependency="watermark_manual_control"
++            app:iconSpaceReserved="false"
++            app:key="watermark_custom_text"
++            app:summary="@string/watermark_custom_text_summary"
++            app:title="@string/watermark_custom_text_title" />
++
++        <SwitchPreference
++            app:dependency="watermark_manual_control"
++            app:defaultValue="true"
++            app:iconSpaceReserved="false"
++            app:key="watermark_show_date"
++            app:title="@string/watermark_show_date_title" />
++
++        <SwitchPreference
++            app:dependency="watermark_manual_control"
++            app:defaultValue="true"
++            app:iconSpaceReserved="false"
++            app:key="watermark_show_time"
++            app:title="@string/watermark_show_time_title" />
++
++        <SwitchPreference
++            app:dependency="watermark_manual_control"
++            app:defaultValue="true"
++            app:iconSpaceReserved="false"
++            app:key="watermark_show_location"
++            app:title="@string/watermark_show_location_title" />
++
++        <SwitchPreference
++            app:dependency="watermark_manual_control"
++            app:defaultValue="false"
++            app:iconSpaceReserved="false"
++            app:key="watermark_show_address"
++            app:title="@string/watermark_show_address_title" />
++
++        <SwitchPreference
++            app:dependency="watermark_manual_control"
++            app:defaultValue="true"
++            app:iconSpaceReserved="false"
++            app:key="watermark_show_device_name"
++            app:title="@string/watermark_show_device_name_title" />
++
++        <SwitchPreference
++            app:dependency="watermark_manual_control"
++            app:defaultValue="true"
++            app:iconSpaceReserved="false"
++            app:key="watermark_show_background"
++            app:title="@string/watermark_show_background_title" />
++
++        <ListPreference
++            app:dependency="watermark_manual_control"
++            app:defaultValue="0.028"
++            app:entries="@array/watermark_text_size_entries"
++            app:entryValues="@array/watermark_text_size_values"
++            app:iconSpaceReserved="false"
++            app:key="watermark_text_size"
++            app:title="@string/watermark_text_size_title" />
++
++        <ListPreference
++            app:dependency="watermark_manual_control"
++            app:defaultValue="#FFFFFFFF"
++            app:entries="@array/watermark_text_color_entries"
++            app:entryValues="@array/watermark_text_color_values"
++            app:iconSpaceReserved="false"
++            app:key="watermark_text_color"
++            app:title="@string/watermark_text_color_title" />
++
++        <ListPreference
++            app:dependency="watermark_manual_control"
++            app:defaultValue="sans-serif"
++            app:entries="@array/watermark_font_entries"
++            app:entryValues="@array/watermark_font_values"
++            app:iconSpaceReserved="false"
++            app:key="watermark_font"
++            app:title="@string/watermark_font_title" />
++
++    </PreferenceCategory>
++
++</PreferenceScreen>
+diff --git a/gradle/.prettierrc b/gradle/.prettierrc
+new file mode 100644
+index 0000000..222861c
+--- /dev/null
++++ b/gradle/.prettierrc
+@@ -0,0 +1,4 @@
++{
++  "tabWidth": 2,
++  "useTabs": false
++}
+diff --git a/gradle/wrapper/gradle-wrapper.jar b/gradle/wrapper/gradle-wrapper.jar
+index 8bdaf60..9bbc975 100644
+Binary files a/gradle/wrapper/gradle-wrapper.jar and b/gradle/wrapper/gradle-wrapper.jar differ
+diff --git a/gradle/wrapper/gradle-wrapper.properties b/gradle/wrapper/gradle-wrapper.properties
+index 2e11132..37f853b 100644
+--- a/gradle/wrapper/gradle-wrapper.properties
++++ b/gradle/wrapper/gradle-wrapper.properties
+@@ -1,6 +1,6 @@
+ distributionBase=GRADLE_USER_HOME
+ distributionPath=wrapper/dists
+-distributionUrl=https\://services.gradle.org/distributions/gradle-9.1.0-bin.zip
++distributionUrl=https\://services.gradle.org/distributions/gradle-8.13-bin.zip
+ networkTimeout=10000
+ validateDistributionUrl=true
+ zipStoreBase=GRADLE_USER_HOME
+diff --git a/gradlew b/gradlew
+index adff685..faf9300 100755
+--- a/gradlew
++++ b/gradlew
+@@ -1,7 +1,7 @@
+ #!/bin/sh
+
+ #
+-# Copyright © 2015 the original authors.
++# Copyright © 2015-2021 the original authors.
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+@@ -114,6 +114,7 @@ case "$( uname )" in                #(
+   NONSTOP* )        nonstop=true ;;
+ esac
+
++CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+
+
+ # Determine the Java command to use to start the JVM.
+@@ -171,6 +172,7 @@ fi
+ # For Cygwin or MSYS, switch paths to Windows format before running java
+ if "$cygwin" || "$msys" ; then
+     APP_HOME=$( cygpath --path --mixed "$APP_HOME" )
++    CLASSPATH=$( cygpath --path --mixed "$CLASSPATH" )
+
+     JAVACMD=$( cygpath --unix "$JAVACMD" )
+
+@@ -210,7 +212,8 @@ DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+
+ set -- \
+         "-Dorg.gradle.appname=$APP_BASE_NAME" \
+-        -jar "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" \
++        -classpath "$CLASSPATH" \
++        org.gradle.wrapper.GradleWrapperMain \
+         "$@"
+
+ # Stop when "xargs" is not available.
+diff --git a/gradlew.bat b/gradlew.bat
+index e509b2d..9d21a21 100644
+--- a/gradlew.bat
++++ b/gradlew.bat
+@@ -1,93 +1,94 @@
+-@rem
+-@rem Copyright 2015 the original author or authors.
+-@rem
+-@rem Licensed under the Apache License, Version 2.0 (the "License");
+-@rem you may not use this file except in compliance with the License.
+-@rem You may obtain a copy of the License at
+-@rem
+-@rem      https://www.apache.org/licenses/LICENSE-2.0
+-@rem
+-@rem Unless required by applicable law or agreed to in writing, software
+-@rem distributed under the License is distributed on an "AS IS" BASIS,
+-@rem WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-@rem See the License for the specific language governing permissions and
+-@rem limitations under the License.
+-@rem
+-@rem SPDX-License-Identifier: Apache-2.0
+-@rem
+-
+-@if "%DEBUG%"=="" @echo off
+-@rem ##########################################################################
+-@rem
+-@rem  Gradle startup script for Windows
+-@rem
+-@rem ##########################################################################
+-
+-@rem Set local scope for the variables with windows NT shell
+-if "%OS%"=="Windows_NT" setlocal
+-
+-set DIRNAME=%~dp0
+-if "%DIRNAME%"=="" set DIRNAME=.
+-@rem This is normally unused
+-set APP_BASE_NAME=%~n0
+-set APP_HOME=%DIRNAME%
+-
+-@rem Resolve any "." and ".." in APP_HOME to make it shorter.
+-for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
+-
+-@rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
+-set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
+-
+-@rem Find java.exe
+-if defined JAVA_HOME goto findJavaFromJavaHome
+-
+-set JAVA_EXE=java.exe
+-%JAVA_EXE% -version >NUL 2>&1
+-if %ERRORLEVEL% equ 0 goto execute
+-
+-echo. 1>&2
+-echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH. 1>&2
+-echo. 1>&2
+-echo Please set the JAVA_HOME variable in your environment to match the 1>&2
+-echo location of your Java installation. 1>&2
+-
+-goto fail
+-
+-:findJavaFromJavaHome
+-set JAVA_HOME=%JAVA_HOME:"=%
+-set JAVA_EXE=%JAVA_HOME%/bin/java.exe
+-
+-if exist "%JAVA_EXE%" goto execute
+-
+-echo. 1>&2
+-echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME% 1>&2
+-echo. 1>&2
+-echo Please set the JAVA_HOME variable in your environment to match the 1>&2
+-echo location of your Java installation. 1>&2
+-
+-goto fail
+-
+-:execute
+-@rem Setup the command line
+-
+-
+-
+-@rem Execute Gradle
+-"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -jar "%APP_HOME%\gradle\wrapper\gradle-wrapper.jar" %*
+-
+-:end
+-@rem End local scope for the variables with windows NT shell
+-if %ERRORLEVEL% equ 0 goto mainEnd
+-
+-:fail
+-rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
+-rem the _cmd.exe /c_ return code!
+-set EXIT_CODE=%ERRORLEVEL%
+-if %EXIT_CODE% equ 0 set EXIT_CODE=1
+-if not ""=="%GRADLE_EXIT_CONSOLE%" exit %EXIT_CODE%
+-exit /b %EXIT_CODE%
+-
+-:mainEnd
+-if "%OS%"=="Windows_NT" endlocal
+-
+-:omega
++@rem
++@rem Copyright 2015 the original author or authors.
++@rem
++@rem Licensed under the Apache License, Version 2.0 (the "License");
++@rem you may not use this file except in compliance with the License.
++@rem You may obtain a copy of the License at
++@rem
++@rem      https://www.apache.org/licenses/LICENSE-2.0
++@rem
++@rem Unless required by applicable law or agreed to in writing, software
++@rem distributed under the License is distributed on an "AS IS" BASIS,
++@rem WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++@rem See the License for the specific language governing permissions and
++@rem limitations under the License.
++@rem
++@rem SPDX-License-Identifier: Apache-2.0
++@rem
++
++@if "%DEBUG%"=="" @echo off
++@rem ##########################################################################
++@rem
++@rem  Gradle startup script for Windows
++@rem
++@rem ##########################################################################
++
++@rem Set local scope for the variables with windows NT shell
++if "%OS%"=="Windows_NT" setlocal
++
++set DIRNAME=%~dp0
++if "%DIRNAME%"=="" set DIRNAME=.
++@rem This is normally unused
++set APP_BASE_NAME=%~n0
++set APP_HOME=%DIRNAME%
++
++@rem Resolve any "." and ".." in APP_HOME to make it shorter.
++for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
++
++@rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
++set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
++
++@rem Find java.exe
++if defined JAVA_HOME goto findJavaFromJavaHome
++
++set JAVA_EXE=java.exe
++%JAVA_EXE% -version >NUL 2>&1
++if %ERRORLEVEL% equ 0 goto execute
++
++echo. 1>&2
++echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH. 1>&2
++echo. 1>&2
++echo Please set the JAVA_HOME variable in your environment to match the 1>&2
++echo location of your Java installation. 1>&2
++
++goto fail
++
++:findJavaFromJavaHome
++set JAVA_HOME=%JAVA_HOME:"=%
++set JAVA_EXE=%JAVA_HOME%/bin/java.exe
++
++if exist "%JAVA_EXE%" goto execute
++
++echo. 1>&2
++echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME% 1>&2
++echo. 1>&2
++echo Please set the JAVA_HOME variable in your environment to match the 1>&2
++echo location of your Java installation. 1>&2
++
++goto fail
++
++:execute
++@rem Setup the command line
++
++set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
++
++
++@rem Execute Gradle
++"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
++
++:end
++@rem End local scope for the variables with windows NT shell
++if %ERRORLEVEL% equ 0 goto mainEnd
++
++:fail
++rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
++rem the _cmd.exe /c_ return code!
++set EXIT_CODE=%ERRORLEVEL%
++if %EXIT_CODE% equ 0 set EXIT_CODE=1
++if not ""=="%GRADLE_EXIT_CONSOLE%" exit %EXIT_CODE%
++exit /b %EXIT_CODE%
++
++:mainEnd
++if "%OS%"=="Windows_NT" endlocal
++
++:omega

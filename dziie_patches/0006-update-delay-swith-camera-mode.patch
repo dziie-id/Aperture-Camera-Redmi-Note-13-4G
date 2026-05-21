@@ -1,0 +1,56 @@
+From 8eb9fa5ca31ea1ec51557b20f1610c336350b577 Mon Sep 17 00:00:00 2001
+From: alfindp <alfindp@gmail.com>
+Date: Tue, 3 Feb 2026 13:07:34 +0000
+Subject: [PATCH 06/19] update delay swith camera mode
+
+---
+ app/src/main/AndroidManifest.xml                          | 4 +++-
+ .../main/java/org/lineageos/aperture/CameraActivity.kt    | 8 +++++++-
+ 2 files changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+index e74bedd..f0480bf 100644
+--- a/app/src/main/AndroidManifest.xml
++++ b/app/src/main/AndroidManifest.xml
+@@ -40,7 +40,9 @@
+         android:label="@string/app_name"
+         android:supportsRtl="true"
+         android:theme="@style/Theme.Aperture"
+-        tools:targetApi="tiramisu">
++        tools:targetApi="tiramisu"
++        android:hardwareAccelerated="true"
++        android:largeHeap="true">
+
+         <uses-library
+             android:name="androidx.camera.extensions.impl"
+diff --git a/app/src/main/java/org/lineageos/aperture/CameraActivity.kt b/app/src/main/java/org/lineageos/aperture/CameraActivity.kt
+index 040e64a..831ca7f 100644
+--- a/app/src/main/java/org/lineageos/aperture/CameraActivity.kt
++++ b/app/src/main/java/org/lineageos/aperture/CameraActivity.kt
+@@ -5,6 +5,8 @@
+
+ package org.lineageos.aperture
+
++import kotlinx.coroutines.delay
++import kotlinx.coroutines.launch
+ import android.animation.ValueAnimator
+ import android.app.KeyguardManager
+ import android.content.ClipData
+@@ -1607,10 +1609,14 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
+         viewModel.cameraController.setEnabledUseCases(cameraUseCases)
+
+         // Bind camera controller to lifecycle
+-        viewModel.cameraController.bindToLifecycle(this)
++
+
+         // Wait for camera to be ready
+         lifecycleScope.launch {
++            delay(600)
++
++            viewModel.cameraController.bindToLifecycle(this@CameraActivity)
++
+             viewModel.cameraController.initializationFuture.await()
+
+             val camera2CameraControl = viewModel.cameraController.camera2CameraControl ?: run {
+--
+2.53.0

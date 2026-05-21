@@ -1,0 +1,24 @@
+From b6bf0c42cbb4bc9ec780ec3fa7acce7ba919c672 Mon Sep 17 00:00:00 2001
+From: dziie-id <alfindp@gmail.com>
+Date: Mon, 2 Feb 2026 10:30:16 +0700
+Subject: [PATCH 05/19] Update FUNDING.yml
+
+---
+ .github/FUNDING.yml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/.github/FUNDING.yml b/.github/FUNDING.yml
+index e1c873f..27b0431 100644
+--- a/.github/FUNDING.yml
++++ b/.github/FUNDING.yml
+@@ -3,7 +3,7 @@
+ github: # Replace with up to 4 GitHub Sponsors-enabled usernames e.g., [user1, user2]
+ patreon: # Replace with a single Patreon username
+ open_collective: # Replace with a single Open Collective username
+-ko_fi: # dziie_id
++ko_fi: dziie_id
+ tidelift: # Replace with a single Tidelift platform-name/package-name e.g., npm/babel
+ community_bridge: # Replace with a single Community Bridge project-name e.g., cloud-foundry
+ liberapay: # Replace with a single Liberapay username
+--
+2.53.0
