@@ -1,0 +1,22 @@
+From 0606ee3b143881d5557c3daaab9e104ac87be4e1 Mon Sep 17 00:00:00 2001
+From: dziie-id <alfindp@gmail.com>
+Date: Wed, 25 Feb 2026 04:59:24 +0700
+Subject: [PATCH 14/19] Edited Watermark
+
+---
+ .gitignore | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/.gitignore b/.gitignore
+index 0f1d137..a2114d2 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -7,3 +7,5 @@
+ /captures
+ .externalNativeBuild
+ .cxx
++.kotlin
++.vscode
+\ No newline at end of file
+--
+2.53.0

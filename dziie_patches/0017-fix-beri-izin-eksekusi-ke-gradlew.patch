@@ -1,0 +1,15 @@
+From e5710a8c150a6d45dc15db40d5535184589c9b4c Mon Sep 17 00:00:00 2001
+From: dziie-id <alfindp@gmail.com>
+Date: Wed, 25 Feb 2026 05:08:17 +0700
+Subject: [PATCH 17/19] fix: beri izin eksekusi ke gradlew
+
+---
+ gradlew | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ mode change 100644 => 100755 gradlew
+
+diff --git a/gradlew b/gradlew
+old mode 100644
+new mode 100755
+--
+2.53.0

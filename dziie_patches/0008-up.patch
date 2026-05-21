@@ -1,0 +1,192 @@
+From 58fcedbdc4015fe6baf921053f7e6d761826c1e9 Mon Sep 17 00:00:00 2001
+From: alfindp <alfindp@gmail.com>
+Date: Wed, 4 Feb 2026 15:00:04 +0000
+Subject: [PATCH 08/19] up
+
+---
+ app/aperture.jks     | Bin 0 -> 2666 bytes
+ app/build.gradle.kts | 113 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 113 insertions(+)
+ create mode 100644 app/aperture.jks
+ create mode 100644 app/build.gradle.kts
+
+diff --git a/app/aperture.jks b/app/aperture.jks
+new file mode 100644
+index 0000000000000000000000000000000000000000..dbeaaa6bf839cf6ae2a84836d7c317d80d3f1180
+GIT binary patch
+literal 2666
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+new file mode 100644
+index 0000000..72e6f12
+--- /dev/null
++++ b/app/build.gradle.kts
+@@ -0,0 +1,113 @@
++/*
++ * SPDX-FileCopyrightText: 2022-2025 The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++import org.jetbrains.kotlin.gradle.dsl.JvmTarget
++import org.lineageos.generatebp.GenerateBpPluginExtension
++import org.lineageos.generatebp.models.Module
++
++plugins {
++    alias(libs.plugins.android.application)
++    alias(libs.plugins.kotlin.android)
++    alias(libs.plugins.lineageos.generatebp)
++}
++
++android {
++    namespace = "org.lineageos.aperture"
++    compileSdk = 36
++
++    defaultConfig {
++        applicationId = "org.lineageos.aperture"
++        minSdk = 26
++        targetSdk = 36
++        versionCode = 36
++        versionName = "16"
++    }
++
++    signingConfigs {
++        create("release") {
++            storeFile = file("aperture.jks")
++            storePassword = "android"
++            keyAlias = "androiddebugkey"
++            keyPassword = "android"
++            enableV1Signing = true
++            enableV2Signing = true
++            enableV3Signing = true
++        }
++    }
++
++    buildTypes {
++        getByName("release") {
++            isMinifyEnabled = true
++            isZipAlignEnabled = true
++            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
++            signingConfig = signingConfigs.getByName("release")
++        }
++        getByName("debug") {
++            signingConfig = signingConfigs.getByName("release")
++        }
++    }
++
++    compileOptions {
++        sourceCompatibility = JavaVersion.VERSION_17
++        targetCompatibility = JavaVersion.VERSION_17
++    }
++
++    kotlinOptions {
++        jvmTarget = "17"
++    }
++
++    lint {
++        lintConfig = file("lint.xml")
++    }
++}
++
++dependencies {
++    implementation(libs.androidx.activity.ktx)
++    implementation(libs.androidx.appcompat)
++    implementation(libs.androidx.camera.core)
++    implementation(libs.androidx.camera.camera2)
++    implementation(libs.androidx.camera.lifecycle)
++    implementation(libs.androidx.camera.video)
++    implementation(libs.androidx.camera.view)
++    implementation(libs.androidx.camera.viewfinder.core) {
++        // Invisible in AOSP, we get it via kotlinx.coroutines anyway
++        exclude("org.jetbrains.kotlinx", "atomicfu")
++    }
++    implementation(libs.androidx.camera.extensions)
++    implementation(libs.androidx.constraintlayout)
++    implementation(libs.androidx.core.ktx)
++    implementation(libs.androidx.exifinterface)
++    implementation(libs.androidx.lifecycle.viewmodel.ktx)
++    implementation(libs.androidx.media3.exoplayer)
++    implementation(libs.androidx.media3.ui)
++    implementation(libs.androidx.preference)
++    implementation(libs.androidx.recyclerview)
++    implementation(libs.material)
++    implementation(libs.coil)
++    implementation(libs.coil.video)
++    implementation(libs.kotlinx.coroutines.guava)
++    implementation(libs.zxing.core)
++    implementation(libs.zxing.cpp.android)
++}
++
++configure<GenerateBpPluginExtension> {
++    targetSdk.set(android.defaultConfig.targetSdk!!)
++    minSdk.set(android.defaultConfig.minSdk!!)
++    availableInAOSP.set { module: Module ->
++        when {
++            module.group.startsWith("androidx") -> {
++                // We provide our own androidx.{camera,media3}
++                !module.group.startsWith("androidx.camera") &&
++                        !module.group.startsWith("androidx.media3")
++            }
++
++            module.group.startsWith("org.jetbrains") -> true
++            module.group == "com.google.android.material" -> true
++            module.group == "com.google.auto.value" -> true
++            module.group == "com.google.guava" -> true
++            else -> false
++        }
++    }
++}
+--
+2.53.0

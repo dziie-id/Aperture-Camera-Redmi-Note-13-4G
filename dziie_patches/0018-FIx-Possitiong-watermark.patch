@@ -1,0 +1,322 @@
+From c1e1d6eff920c7fe3d20091639cd9bacd97435a2 Mon Sep 17 00:00:00 2001
+From: dziie-id <alfindp@gmail.com>
+Date: Wed, 25 Feb 2026 07:52:02 +0700
+Subject: [PATCH 18/19] FIx Possitiong watermark
+
+---
+ .../org/lineageos/aperture/CameraActivity.kt  | 13 ++-
+ .../aperture/models/CameraConfiguration.kt    |  3 +
+ .../aperture/utils/WatermarkUtils.kt          | 98 ++++++++++++++++---
+ .../aperture/viewmodels/CameraViewModel.kt    |  6 +-
+ app/src/main/res/xml/root_preferences.xml     | 11 +--
+ 5 files changed, 104 insertions(+), 27 deletions(-)
+
+diff --git a/app/src/main/java/org/lineageos/aperture/CameraActivity.kt b/app/src/main/java/org/lineageos/aperture/CameraActivity.kt
+index 86adf0d..da8f2be 100644
+--- a/app/src/main/java/org/lineageos/aperture/CameraActivity.kt
++++ b/app/src/main/java/org/lineageos/aperture/CameraActivity.kt
+@@ -5,8 +5,6 @@
+
+ package org.lineageos.aperture
+
+-import kotlinx.coroutines.delay
+-import kotlinx.coroutines.launch
+ import android.animation.ValueAnimator
+ import android.app.KeyguardManager
+ import android.content.ClipData
+@@ -17,6 +15,7 @@ import android.graphics.Color
+ import android.graphics.Rect
+ import android.graphics.drawable.AnimatedVectorDrawable
+ import android.graphics.drawable.ColorDrawable
++import android.hardware.camera2.CaptureRequest
+ import android.icu.text.DecimalFormat
+ import android.net.Uri
+ import android.os.Build
+@@ -77,6 +76,7 @@ import coil3.video.VideoFrameDecoder
+ import com.google.android.material.snackbar.Snackbar
+ import kotlinx.coroutines.CoroutineScope
+ import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.delay
+ import kotlinx.coroutines.flow.collect
+ import kotlinx.coroutines.flow.collectLatest
+ import kotlinx.coroutines.guava.await
+@@ -816,7 +816,7 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
+
+                         CameraXCameraState.ERROR_CAMERA_DISABLED -> {
+                             // No way to fix it without user action, bail out
+-                            showToast(R.string.error_camera_disabled)
++                            showToast(R.drawable.ic_lock)
+                             finish()
+                         }
+
+@@ -1619,7 +1619,7 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
+             delay(600)
+
+             viewModel.cameraController.bindToLifecycle(this@CameraActivity)
+-
++
+             viewModel.cameraController.initializationFuture.await()
+
+             val camera2CameraControl = viewModel.cameraController.camera2CameraControl ?: run {
+@@ -1655,6 +1655,11 @@ open class CameraActivity : AppCompatActivity(R.layout.activity_camera) {
+                 .setColorCorrectionAberrationMode(camera2Options.colorCorrectionAberrationMode)
+                 .setDistortionCorrectionMode(camera2Options.distortionCorrectionMode)
+                 .setHotPixelMode(camera2Options.hotPixelMode)
++                .apply {
++                    camera2Options.sceneMode?.let {
++                        setCaptureRequestOption(CaptureRequest.CONTROL_SCENE_MODE, it)
++                    }
++                }
+                 .build()
+         }
+
+diff --git a/app/src/main/java/org/lineageos/aperture/models/CameraConfiguration.kt b/app/src/main/java/org/lineageos/aperture/models/CameraConfiguration.kt
+index 8b49995..fc7ac83 100644
+--- a/app/src/main/java/org/lineageos/aperture/models/CameraConfiguration.kt
++++ b/app/src/main/java/org/lineageos/aperture/models/CameraConfiguration.kt
+@@ -23,6 +23,7 @@ sealed interface CameraConfiguration {
+      * @param colorCorrectionAberrationMode The [ColorCorrectionAberrationMode] to use
+      * @param distortionCorrectionMode The [DistortionCorrectionMode] to use
+      * @param hotPixelMode The [HotPixelMode] to use
++     * @param sceneMode The Camera2 scene mode to use
+      */
+     data class Camera2Options(
+         val edgeMode: EdgeMode?,
+@@ -31,6 +32,7 @@ sealed interface CameraConfiguration {
+         val colorCorrectionAberrationMode: ColorCorrectionAberrationMode?,
+         val distortionCorrectionMode: DistortionCorrectionMode?,
+         val hotPixelMode: HotPixelMode?,
++        val sceneMode: Int?,
+     ) {
+         companion object {
+             /**
+@@ -43,6 +45,7 @@ sealed interface CameraConfiguration {
+                 colorCorrectionAberrationMode = null,
+                 distortionCorrectionMode = null,
+                 hotPixelMode = null,
++                sceneMode = null,
+             )
+         }
+     }
+diff --git a/app/src/main/java/org/lineageos/aperture/utils/WatermarkUtils.kt b/app/src/main/java/org/lineageos/aperture/utils/WatermarkUtils.kt
+index f2a814f..5237041 100644
+--- a/app/src/main/java/org/lineageos/aperture/utils/WatermarkUtils.kt
++++ b/app/src/main/java/org/lineageos/aperture/utils/WatermarkUtils.kt
+@@ -104,16 +104,20 @@ object WatermarkUtils {
+         val fontMetrics = paintFill.fontMetrics
+         val textHeight = fontMetrics.descent - fontMetrics.ascent
+
+-        // Y positions: Baris 2 di paling bawah, Baris 1 di atasnya
++        // Y positions logic: Dynamic per side
+         val yBase2 = mutableBitmap.height - paddingPx - fontMetrics.descent
+-        val yBase1 = if (lineRight2 != null || lineLeft2 != null) yBase2 - textHeight - lineSpacing else yBase2
++        val yTopIfTwoLines = yBase2 - textHeight - lineSpacing
+
+         // Draw Background
+         if (watermarkShowBackground) {
+-            if (lineLeft1 != null || lineLeft2 != null || lineRight1 != null || lineRight2 != null) {
++            val hasAnyText = lineLeft1 != null || lineLeft2 != null || lineRight1 != null || lineRight2 != null
++            if (hasAnyText) {
+                 val bgPaint = Paint().apply { color = Color.argb(120, 0, 0, 0) }
+-
+-                val top = yBase1 + fontMetrics.ascent - paddingPx / 4
++
++                // Determine if we need background for 1 or 2 lines based on the side with most lines
++                val maxLines = if (lineLeft2 != null || lineRight2 != null) 2 else 1
++                val top = if (maxLines == 2) yTopIfTwoLines + fontMetrics.ascent - paddingPx / 4
++                          else yBase2 + fontMetrics.ascent - paddingPx / 4
+                 val bottom = yBase2 + fontMetrics.descent + paddingPx / 4
+
+                 val rect = Rect(0, top.toInt(), mutableBitmap.width, bottom.toInt())
+@@ -123,9 +127,10 @@ object WatermarkUtils {
+
+         // Draw Right Watermark
+         val xRight = mutableBitmap.width - paddingPx
++        val yRight = if (lineRight2 != null) yTopIfTwoLines else yBase2
+         lineRight1?.let {
+-            canvas.drawText(it, xRight - paintFill.measureText(it), yBase1, paintStroke)
+-            canvas.drawText(it, xRight - paintFill.measureText(it), yBase1, paintFill)
++            canvas.drawText(it, xRight - paintFill.measureText(it), yRight, paintStroke)
++            canvas.drawText(it, xRight - paintFill.measureText(it), yRight, paintFill)
+         }
+         lineRight2?.let {
+             canvas.drawText(it, xRight - paintFill.measureText(it), yBase2, paintStroke)
+@@ -134,9 +139,10 @@ object WatermarkUtils {
+
+         // Draw Left Watermark
+         val xLeft = paddingPx.toFloat()
++        val yLeft = if (lineLeft2 != null) yTopIfTwoLines else yBase2
+         lineLeft1?.let {
+-            canvas.drawText(it, xLeft, yBase1, paintStroke)
+-            canvas.drawText(it, xLeft, yBase1, paintFill)
++            canvas.drawText(it, xLeft, yLeft, paintStroke)
++            canvas.drawText(it, xLeft, yLeft, paintFill)
+         }
+         lineLeft2?.let {
+             canvas.drawText(it, xLeft, yBase2, paintStroke)
+@@ -213,7 +219,35 @@ object WatermarkUtils {
+             ByteArrayOutputStream().use { out ->
+                 watermarked.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                 watermarked.recycle()
+-                out.toByteArray()
++
++                // Copy EXIF from original bytes to watermarked bytes
++                val watermarkedBytes = out.toByteArray()
++                val newExif = ExifInterface(ByteArrayInputStream(watermarkedBytes))
++
++                // Copy relevant attributes
++                val tags = arrayOf(
++                    ExifInterface.TAG_MAKE,
++                    ExifInterface.TAG_MODEL,
++                    ExifInterface.TAG_DATETIME,
++                    ExifInterface.TAG_FLASH,
++                    ExifInterface.TAG_FOCAL_LENGTH,
++                    ExifInterface.TAG_GPS_LATITUDE,
++                    ExifInterface.TAG_GPS_LONGITUDE,
++                    ExifInterface.TAG_GPS_LATITUDE_REF,
++                    ExifInterface.TAG_GPS_LONGITUDE_REF,
++                    ExifInterface.TAG_EXPOSURE_TIME,
++                    ExifInterface.TAG_F_NUMBER,
++                    ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
++                    ExifInterface.TAG_WHITE_BALANCE
++                )
++
++                for (tag in tags) {
++                    exif.getAttribute(tag)?.let { value ->
++                        newExif.setAttribute(tag, value)
++                    }
++                }
++
++                watermarkedBytes
+             }
+         } catch (e: Exception) {
+             Log.e(LOG_TAG, "Failed to apply watermark to bytes", e)
+@@ -248,8 +282,9 @@ object WatermarkUtils {
+             contentResolver.openInputStream(uri)?.use { input ->
+                 val bytes = input.readBytes()
+                 val exif = ExifInterface(ByteArrayInputStream(bytes))
+-                val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
++
+                 val bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@withContext false
++                val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
+                 val rotated = when (orientation) {
+                     ExifInterface.ORIENTATION_ROTATE_90 -> rotateBitmap(bitmap, 90)
+                     ExifInterface.ORIENTATION_ROTATE_180 -> rotateBitmap(bitmap, 180)
+@@ -257,6 +292,7 @@ object WatermarkUtils {
+                     else -> bitmap
+                 }
+                 if (rotated != bitmap) bitmap.recycle()
++
+                 val watermarked = drawWatermark(
+                     rotated, timestampMillis, location, watermarkManualControl,
+                     watermarkCustomText, watermarkShowDate, watermarkShowTime, watermarkShowLocation,
+@@ -264,12 +300,50 @@ object WatermarkUtils {
+                     watermarkTextSize, watermarkTextColor, watermarkFont, address
+                 )
+                 if (watermarked != rotated) rotated.recycle()
++
+                 val outputStream = ByteArrayOutputStream()
+                 watermarked.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
++                val watermarkedBytes = outputStream.toByteArray()
+                 watermarked.recycle()
++
++                // Write watermarked bytes back
+                 contentResolver.openOutputStream(uri, "wt")?.use { out ->
+-                    out.write(outputStream.toByteArray())
++                    out.write(watermarkedBytes)
+                 } ?: return@withContext false
++
++                // RE-APPLY EXIF after writing file
++                contentResolver.openFileDescriptor(uri, "rw")?.use { pfd ->
++                    val newExif = ExifInterface(pfd.fileDescriptor)
++
++                    val tags = arrayOf(
++                        ExifInterface.TAG_MAKE,
++                        ExifInterface.TAG_MODEL,
++                        ExifInterface.TAG_DATETIME,
++                        ExifInterface.TAG_FLASH,
++                        ExifInterface.TAG_FOCAL_LENGTH,
++                        ExifInterface.TAG_GPS_LATITUDE,
++                        ExifInterface.TAG_GPS_LONGITUDE,
++                        ExifInterface.TAG_GPS_LATITUDE_REF,
++                        ExifInterface.TAG_GPS_LONGITUDE_REF,
++                        ExifInterface.TAG_EXPOSURE_TIME,
++                        ExifInterface.TAG_F_NUMBER,
++                        ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
++                        ExifInterface.TAG_WHITE_BALANCE,
++                        ExifInterface.TAG_ORIENTATION // Set to normal as we already rotated the bitmap
++                    )
++
++                    for (tag in tags) {
++                        if (tag == ExifInterface.TAG_ORIENTATION) {
++                            newExif.setAttribute(tag, ExifInterface.ORIENTATION_NORMAL.toString())
++                        } else {
++                            exif.getAttribute(tag)?.let { value ->
++                                newExif.setAttribute(tag, value)
++                            }
++                        }
++                    }
++                    newExif.saveAttributes()
++                }
++
+                 true
+             } ?: false
+         } catch (e: Exception) {
+diff --git a/app/src/main/java/org/lineageos/aperture/viewmodels/CameraViewModel.kt b/app/src/main/java/org/lineageos/aperture/viewmodels/CameraViewModel.kt
+index fd168ca..8881c8b 100644
+--- a/app/src/main/java/org/lineageos/aperture/viewmodels/CameraViewModel.kt
++++ b/app/src/main/java/org/lineageos/aperture/viewmodels/CameraViewModel.kt
+@@ -1103,8 +1103,8 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
+                     return
+                 }
+
+-                // Watermark when toggle is on (Settings → Photo watermark). Only for photo mode (JPEG).
+-                val watermarkEnabled = preferencesRepository.photoWatermark.value &&
++                // Watermark when toggle is on (Manual watermark control). Only for photo mode (JPEG).
++                val watermarkEnabled = preferencesRepository.watermarkManualControl.value &&
+                     imageOutputFormat != ImageCapture.OUTPUT_FORMAT_RAW
+
+                 when {
+@@ -1875,6 +1875,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
+                 else -> true
+             }
+         },
++        sceneMode = null,
+     )
+
+     @androidx.annotation.OptIn(ExperimentalZeroShutterLag::class)
+@@ -1905,6 +1906,7 @@ class CameraViewModel(application: Application) : ApertureViewModel(application)
+             camera.supportedHotPixelModes.contains(it)
+                     && HotPixelMode.ALLOWED_MODES_ON_VIDEO_MODE.contains(it)
+         },
++        sceneMode = null,
+     )
+
+     /**
+diff --git a/app/src/main/res/xml/root_preferences.xml b/app/src/main/res/xml/root_preferences.xml
+index 7db3fe5..1394d39 100644
+--- a/app/src/main/res/xml/root_preferences.xml
++++ b/app/src/main/res/xml/root_preferences.xml
+@@ -93,18 +93,11 @@
+             app:summary="@string/photo_ffc_mirror_summary"
+             app:title="@string/photo_ffc_mirror_title" />
+
+-        <SwitchPreference
+-            app:defaultValue="false"
+-            app:iconSpaceReserved="false"
+-            app:key="photo_watermark"
+-            app:summary="@string/photo_watermark_summary"
+-            app:title="@string/photo_watermark_title" />
+-
+         <Preference
+-            app:dependency="photo_watermark"
+             app:fragment="org.lineageos.aperture.SettingsActivity$WatermarkSettingsFragment"
+             app:iconSpaceReserved="false"
+-            app:title="@string/watermark_settings_title" />
++            app:summary="@string/photo_watermark_summary"
++            app:title="@string/photo_watermark_title" />
+
+     </PreferenceCategory>
+
+--
+2.53.0
